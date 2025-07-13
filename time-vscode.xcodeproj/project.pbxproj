@@ -6,11 +6,26 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		14550FBD2E24006900BACDC0 /* CLAUDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 14550FBC2E24006900BACDC0 /* CLAUDE.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		14550FBC2E24006900BACDC0 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
 		14F7E02B2E141361000CB627 /* time-vscode.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "time-vscode.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		14550FC02E2401B800BACDC0 /* vibe */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = vibe;
+			sourceTree = "<group>";
+		};
+		14550FC72E2401D800BACDC0 /* ui */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ui;
+			sourceTree = "<group>";
+		};
 		14F7E02D2E141361000CB627 /* time-vscode */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "time-vscode";
@@ -32,6 +47,9 @@
 		14F7E0222E141361000CB627 = {
 			isa = PBXGroup;
 			children = (
+				14550FC72E2401D800BACDC0 /* ui */,
+				14550FC02E2401B800BACDC0 /* vibe */,
+				14550FBC2E24006900BACDC0 /* CLAUDE.md */,
 				14F7E02D2E141361000CB627 /* time-vscode */,
 				14F7E02C2E141361000CB627 /* Products */,
 			);
@@ -61,6 +79,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				14550FC02E2401B800BACDC0 /* vibe */,
+				14550FC72E2401D800BACDC0 /* ui */,
 				14F7E02D2E141361000CB627 /* time-vscode */,
 			);
 			name = "time-vscode";
@@ -109,6 +129,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				14550FBD2E24006900BACDC0 /* CLAUDE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
