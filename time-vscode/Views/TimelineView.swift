@@ -1,5 +1,5 @@
+import AppKit // Added AppKit import to access NSColor
 import SwiftUI
-import AppKit  // Added AppKit import to access NSColor
 
 struct TimelineView: View {
     @State private var timelineScale: CGFloat = 1.0
@@ -14,7 +14,7 @@ struct TimelineView: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: true) {
-            VStack(spacing: 0) {
+            VStack(spacing: 12) {
                 // Time header
                 HStack(alignment: .bottom, spacing: 0) {
                     Text("TIME")
@@ -33,91 +33,89 @@ struct TimelineView: View {
                 .padding(.bottom, 4)
                 .padding(.top, 4)
                 
-                VStack(spacing: 12) {
-                    // Device row
-                    HStack(alignment: .center, spacing: 0) {
-                        Text("MACBOOK PRO INTEL i9")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 140, alignment: .leading)
-                            .padding(.leading, 16)
-                        
-                        // Timeline blocks
-                        ZStack(alignment: .leading) {
-                            // Background timeline
-                            Rectangle()
-                                .fill(Color(NSColor.systemGray))
-                                .frame(width: timelineWidth, height: 24) // 24 hours * 80px per hour
-                            
-                            // Activity blocks - would be dynamic in real app
-                            Group {
-                                TimeBlock(color: .blue.opacity(0.5), position: 0.05, width: 0.02)
-                                TimeBlock(color: .green.opacity(0.5), position: 0.15, width: 0.02)
-                                TimeBlock(color: .green.opacity(0.5), position: 0.22, width: 0.03)
-                                TimeBlock(color: .green.opacity(0.8), position: 0.25, width: 0.02)
-                                TimeBlock(color: .green.opacity(0.5), position: 0.35, width: 0.02)
-                                TimeBlock(color: .green.opacity(0.5), position: 0.42, width: 0.02)
-                                TimeBlock(color: .green.opacity(0.5), position: 0.48, width: 0.02)
-                                TimeBlock(color: .green.opacity(0.8), position: 0.58, width: 0.02)
-                                TimeBlock(color: .green.opacity(0.5), position: 0.65, width: 0.02)
-                                TimeBlock(color: .green.opacity(0.5), position: 0.78, width: 0.02)
-                                TimeBlock(color: .blue.opacity(0.5), position: 0.82, width: 0.02)
-                                TimeBlock(color: .green.opacity(0.5), position: 0.84, width: 0.05)
-                                TimeBlock(color: .green.opacity(0.8), position: 0.95, width: 0.02)
-                            }
-                        }
-                    }
+                // Device row
+                HStack(alignment: .center, spacing: 0) {
+                    Text("MACBOOK PRO INTEL i9")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 140, alignment: .leading)
+                        .padding(.leading, 16)
                     
-                    // Project row
-                    HStack(alignment: .center, spacing: 0) {
-                        Text("PROJECT")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 140, alignment: .leading)
-                            .padding(.leading, 16)
-                        
-                        // Empty timeline
+                    // Timeline blocks
+                    ZStack(alignment: .leading) {
+                        // Background timeline
                         Rectangle()
                             .fill(Color(NSColor.systemGray))
                             .frame(width: timelineWidth, height: 24) // 24 hours * 80px per hour
-                    }
-                    
-                    // Time entries row
-                    HStack(alignment: .center, spacing: 0) {
-                        Text("TIME ENTRIES")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 140, alignment: .leading)
-                            .padding(.leading, 16)
                         
-                        // Time entries blocks
-                        ZStack(alignment: .leading) {
-                            // Background timeline
-                            Rectangle()
-                                .fill(Color(NSColor.systemGray))
-                                .frame(width: timelineWidth, height: 24) // 24 hours * 80px per hour
-                            
-                            // Entry blocks - would be dynamic in real app
-                            Group {
-                                TimeEntryBlock(position: 0.07, width: 0.1)
-                                TimeEntryBlock(position: 0.21, width: 0.03)
-                                TimeEntryBlock(position: 0.25, width: 0.02)
-                                TimeEntryBlock(position: 0.28, width: 0.02)
-                                TimeEntryBlock(position: 0.31, width: 0.15)
-                                TimeEntryBlock(position: 0.5, width: 0.1)
-                                TimeEntryBlock(position: 0.65, width: 0.2)
-                                TimeEntryBlock(position: 0.89, width: 0.05)
-                                TimeEntryBlock(position: 0.95, width: 0.04)
-                            }
+                        // Activity blocks - would be dynamic in real app
+                        Group {
+                            TimeBlock(color: .blue.opacity(0.5), position: 0.05, width: 0.02)
+                            TimeBlock(color: .green.opacity(0.5), position: 0.15, width: 0.02)
+                            TimeBlock(color: .green.opacity(0.5), position: 0.22, width: 0.03)
+                            TimeBlock(color: .green.opacity(0.8), position: 0.25, width: 0.02)
+                            TimeBlock(color: .green.opacity(0.5), position: 0.35, width: 0.02)
+                            TimeBlock(color: .green.opacity(0.5), position: 0.42, width: 0.02)
+                            TimeBlock(color: .green.opacity(0.5), position: 0.48, width: 0.02)
+                            TimeBlock(color: .green.opacity(0.8), position: 0.58, width: 0.02)
+                            TimeBlock(color: .green.opacity(0.5), position: 0.65, width: 0.02)
+                            TimeBlock(color: .green.opacity(0.5), position: 0.78, width: 0.02)
+                            TimeBlock(color: .blue.opacity(0.5), position: 0.82, width: 0.02)
+                            TimeBlock(color: .green.opacity(0.5), position: 0.84, width: 0.05)
+                            TimeBlock(color: .green.opacity(0.8), position: 0.95, width: 0.02)
                         }
                     }
                 }
-                .padding(.bottom)
+                
+                // Project row
+                HStack(alignment: .center, spacing: 0) {
+                    Text("PROJECT")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 140, alignment: .leading)
+                        .padding(.leading, 16)
+                    
+                    // Empty timeline
+                    Rectangle()
+                        .fill(Color(NSColor.systemGray))
+                        .frame(width: timelineWidth, height: 24) // 24 hours * 80px per hour
+                }
+                
+                // Time entries row
+                HStack(alignment: .center, spacing: 0) {
+                    Text("TIME ENTRIES")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 140, alignment: .leading)
+                        .padding(.leading, 16)
+                    
+                    // Time entries blocks
+                    ZStack(alignment: .leading) {
+                        // Background timeline
+                        Rectangle()
+                            .fill(Color(NSColor.systemGray))
+                            .frame(width: timelineWidth, height: 24) // 24 hours * 80px per hour
+                        
+                        // Entry blocks - would be dynamic in real app
+                        Group {
+                            TimeEntryBlock(position: 0.07, width: 0.1)
+                            TimeEntryBlock(position: 0.21, width: 0.03)
+                            TimeEntryBlock(position: 0.25, width: 0.02)
+                            TimeEntryBlock(position: 0.28, width: 0.02)
+                            TimeEntryBlock(position: 0.31, width: 0.15)
+                            TimeEntryBlock(position: 0.5, width: 0.1)
+                            TimeEntryBlock(position: 0.65, width: 0.2)
+                            TimeEntryBlock(position: 0.89, width: 0.05)
+                            TimeEntryBlock(position: 0.95, width: 0.04)
+                        }
+                    }
+                }
             }
-            .frame(width: totalWidth, alignment: .leading)
+            .padding(.bottom)
         }
-        .scrollIndicators(.visible)
-        .onZoom(scale: $timelineScale) 
+        .scrollIndicators(.visible, axes: .horizontal)
+        .contentMargins(.horizontal, 0) // 确保内容边距不影响滚动
+        .onZoom(scale: $timelineScale)
     }
 }
 
