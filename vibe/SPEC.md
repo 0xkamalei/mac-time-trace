@@ -1,9 +1,5 @@
 # project spec
 
-copy to CLAUDE.md/GEMINI/md/gitcopilot-instructions.md  
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
 This is a native macOS time tracking application built with SwiftUI and SwiftData. like timing app. The app tracks application usage, manages hierarchical projects, and provides timer functionality for focused work sessions.
