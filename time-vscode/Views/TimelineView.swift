@@ -30,7 +30,7 @@ struct TimelineView: View {
     }()
     
     private var timelineWidth: CGFloat {
-        return 1920 * timelineScale
+        return 24 * 80 * timelineScale // 24 hours * 80px per hour
     }
     
     private var totalWidth: CGFloat {
@@ -104,17 +104,19 @@ struct TimelineView: View {
                             .frame(width: timelineWidth, height: 30)
                             .cornerRadius(5)
 
-// Activity blocks positioned according to time
-Group {
-    ForEach(activities, id: \.id) { activity in
-        let start = activity.startTime.timeIntervalSinceMidnight() / 86400
-        let end = activity.endTime.timeIntervalSinceMidnight() / 86400
-        let width = end - start
-        let appColor = colorForApp(activity.appBundleId)
+                        // Activity blocks positioned according to time
+                        Group {
+                            ForEach(activities, id: \.id) { activity in
+                                let startSeconds = activity.startTime.timeIntervalSinceMidnight()
+                                let endSeconds = activity.endTime.timeIntervalSinceMidnight()
+                                let start = startSeconds / 86400  // Convert to 0-1 range
+                                let end = endSeconds / 86400
+                                let width = end - start
+                                let appColor = colorForApp(activity.appBundleId)
         
-        TimeBlock(color: appColor.opacity(0.6), position: start, width: width, iconName: activity.icon)
-    }
-}
+                                TimeBlock(color: appColor.opacity(0.6), position: start, width: width, iconName: activity.icon)
+                            }
+                        }
                     }
                 }
                 
