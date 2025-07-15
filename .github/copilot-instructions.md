@@ -28,6 +28,7 @@ open time-vscode.xcodeproj
 ### Code style
 
 - Use best practices with the latest versions of SwiftUI and SwiftData
+- Generate code without comments
 
 ### Features
 
