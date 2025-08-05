@@ -12,7 +12,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - Update initializer to handle optional endTime parameter
   - _Requirements: 2.1, 2.2, 4.1_
 
-- [ ] 2. Update SwiftData schema configuration with migration support
+- [x] 2. Update SwiftData schema configuration with migration support
   - Modify `time-vscode/time_vscodeApp.swift` to include Activity in schema
   - Add Activity.self to the Schema array alongside Item.self
   - Configure ModelConfiguration for optimal SQLite performance
@@ -21,7 +21,7 @@ Convert the feature design into a series of prompts for a code-generation LLM th
   - Add schema versioning support for future migrations
   - _Requirements: 2.1, 2.2, 4.2, 4.5, 5.2_
 
-- [ ] 2.1. Implement schema migration strategy
+- [x] 2.1. Implement schema migration strategy
   - Create migration logic to handle conversion from struct-based MockData to SwiftData models
   - Add version checking to detect schema changes
   - Implement data preservation during model updates

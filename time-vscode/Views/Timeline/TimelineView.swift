@@ -114,7 +114,8 @@ struct TimelineView: View {
                         Group {
                             ForEach(activities, id: \.id) { activity in
                                 let startSeconds = activity.startTime.timeIntervalSinceMidnight()
-                                let endSeconds = activity.endTime.timeIntervalSinceMidnight()
+                                // For active activities (endTime = nil), use current time for display
+                                let endSeconds = (activity.endTime ?? Date()).timeIntervalSinceMidnight()
                                 // Convert to hours for direct pixel positioning
                                 let startHours = startSeconds / 3600
                                 let endHours = endSeconds / 3600
