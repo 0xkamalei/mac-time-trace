@@ -4,7 +4,7 @@ import SwiftData
 
 @Model
 final class Activity {
-    var id: UUID
+    @Attribute(.unique) var id: UUID
     var appName: String
     var appBundleId: String
     var appTitle: String?

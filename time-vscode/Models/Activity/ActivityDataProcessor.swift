@@ -167,13 +167,18 @@ class ActivityDataProcessor {
     static func matchActivitiesToTimeEntries(_ activities: [Activity], _ timeEntries: [TimeEntry]) -> [UUID: [(timeEntry: TimeEntry, overlapDuration: TimeInterval)]] {
         var matches: [UUID: [(timeEntry: TimeEntry, overlapDuration: TimeInterval)]] = [:]
         
-        for activity in activities {
+        // Only process completed activities (those with endTime)
+        let completedActivities = activities.filter { $0.endTime != nil }
+        
+        for activity in completedActivities {
+            guard let activityEndTime = activity.endTime else { continue }
+            
             var overlappingEntries: [(timeEntry: TimeEntry, overlapDuration: TimeInterval)] = []
             
             for timeEntry in timeEntries {
                 let overlapDuration = calculateTemporalOverlap(
                     activityStart: activity.startTime,
-                    activityEnd: activity.endTime,
+                    activityEnd: activityEndTime,
                     entryStart: timeEntry.startTime,
                     entryEnd: timeEntry.endTime
                 )
@@ -265,28 +270,32 @@ class ActivityDataProcessor {
     
     /// Calculates total duration for a list of activities with overlap detection
     /// - Parameter activities: Array of activities
-    /// - Returns: Total duration accounting for overlaps
+    /// - Returns: Total duration accounting for overlaps (only for completed activities)
     static func calculateTotalDurationForActivities(_ activities: [Activity]) -> TimeInterval {
-        let sortedActivities = activities.sorted { $0.startTime < $1.startTime }
+        // Only process completed activities (those with endTime)
+        let completedActivities = activities.filter { $0.endTime != nil }
+        let sortedActivities = completedActivities.sorted { $0.startTime < $1.startTime }
         
         var totalDuration: TimeInterval = 0
         var lastEndTime: Date?
         
         for activity in sortedActivities {
+            guard let activityEndTime = activity.endTime else { continue }
+            
             if let lastEnd = lastEndTime, activity.startTime < lastEnd {
                 // There's an overlap, only count the non-overlapping portion
-                let overlapEnd = min(activity.endTime, lastEnd)
+                let overlapEnd = min(activityEndTime, lastEnd)
                 let nonOverlappingStart = max(overlapEnd, activity.startTime)
                 
-                if nonOverlappingStart < activity.endTime {
-                    let nonOverlappingDuration = activity.endTime.timeIntervalSince(nonOverlappingStart)
+                if nonOverlappingStart < activityEndTime {
+                    let nonOverlappingDuration = activityEndTime.timeIntervalSince(nonOverlappingStart)
                     totalDuration += nonOverlappingDuration
-                    lastEndTime = activity.endTime
+                    lastEndTime = activityEndTime
                 }
             } else {
                 // No overlap, add full duration
-                totalDuration += activity.duration
-                lastEndTime = activity.endTime
+                totalDuration += activity.duration // Use stored duration for completed activities
+                lastEndTime = activityEndTime
             }
         }
         
