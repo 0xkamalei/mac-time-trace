@@ -1,22 +1,20 @@
 import SwiftUI
 import Foundation
+import SwiftData
 
-struct Activity: Identifiable, Equatable {
-    let id = UUID()
-    let appName: String
-    let appBundleId: String
-    let appTitle: String?
-    let duration: TimeInterval
-    let startTime: Date
-    let endTime: Date
-    let icon: String
-    
-    static func == (lhs: Activity, rhs: Activity) -> Bool {
-        return lhs.id == rhs.id
-    }
+@Model
+final class Activity {
+    var id: UUID
+    var appName: String
+    var appBundleId: String
+    var appTitle: String?
+    var duration: TimeInterval
+    var startTime: Date
+    var endTime: Date? // Optional for ongoing activities (nil = active)
+    var icon: String
     
     var durationString: String {
-        let minutes = Int(duration / 60)
+        let minutes = Int(calculatedDuration / 60)
         if minutes < 1 {
             return "<1m"
         }
@@ -24,10 +22,24 @@ struct Activity: Identifiable, Equatable {
     }
     
     var minutes: Int {
-        return Int(duration / 60)
+        return Int(calculatedDuration / 60)
     }
     
-    init(appName: String, appBundleId: String, appTitle: String? = nil, duration: TimeInterval, startTime: Date, endTime: Date, icon: String) {
+    var calculatedDuration: TimeInterval {
+        if let endTime = endTime {
+            return endTime.timeIntervalSince(startTime)
+        } else {
+            // For ongoing activities, calculate duration from start to now
+            return Date().timeIntervalSince(startTime)
+        }
+    }
+    
+    var isActive: Bool {
+        return endTime == nil
+    }
+    
+    init(appName: String, appBundleId: String, appTitle: String? = nil, duration: TimeInterval, startTime: Date, endTime: Date? = nil, icon: String) {
+        self.id = UUID()
         self.appName = appName
         self.appBundleId = appBundleId
         self.appTitle = appTitle
