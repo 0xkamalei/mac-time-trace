@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppDateRange {
+struct AppDateRange : Equatable{
     let startDate: Date
     let endDate: Date
 }
