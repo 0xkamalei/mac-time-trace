@@ -66,7 +66,7 @@ struct ActivitiesView: View {
         .onAppear {
             buildHierarchy()
         }
-        .onChange(of: activities) { _ in
+        .onChange(of: activities) { 
             buildHierarchy()
         }
     }
