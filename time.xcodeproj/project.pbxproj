@@ -30,7 +30,7 @@
 		14E24CA62E3EFA6B00BC442E /* Timing App PRD.markdown */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Timing App PRD.markdown"; sourceTree = "<group>"; };
 		14E24CA72E3EFA6B00BC442E /* TODO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TODO.md; sourceTree = "<group>"; };
 		14E24CA82E3EFA6B00BC442E /* UI.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI.md; sourceTree = "<group>"; };
-		14F7E02B2E141361000CB627 /* time-vscode.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "time-vscode.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		14F7E02B2E141361000CB627 /* time.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = time.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -39,9 +39,9 @@
 			path = ui;
 			sourceTree = "<group>";
 		};
-		14F7E02D2E141361000CB627 /* time-vscode */ = {
+		14F7E02D2E141361000CB627 /* time */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "time-vscode";
+			path = time;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -76,7 +76,7 @@
 			isa = PBXGroup;
 			children = (
 				14550FC72E2401D800BACDC0 /* ui */,
-				14F7E02D2E141361000CB627 /* time-vscode */,
+				14F7E02D2E141361000CB627 /* time */,
 				14550FD42E24B04800BACDC0 /* GEMINI.md */,
 				14550FBC2E24006900BACDC0 /* CLAUDE.md */,
 				14E24CA92E3EFA6B00BC442E /* prompt */,
@@ -87,7 +87,7 @@
 		14F7E02C2E141361000CB627 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				14F7E02B2E141361000CB627 /* time-vscode.app */,
+				14F7E02B2E141361000CB627 /* time.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,9 +95,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		14F7E02A2E141361000CB627 /* time-vscode */ = {
+		14F7E02A2E141361000CB627 /* time */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 14F7E0392E141363000CB627 /* Build configuration list for PBXNativeTarget "time-vscode" */;
+			buildConfigurationList = 14F7E0392E141363000CB627 /* Build configuration list for PBXNativeTarget "time" */;
 			buildPhases = (
 				14F7E0272E141361000CB627 /* Sources */,
 				14F7E0282E141361000CB627 /* Frameworks */,
@@ -109,13 +109,13 @@
 			);
 			fileSystemSynchronizedGroups = (
 				14550FC72E2401D800BACDC0 /* ui */,
-				14F7E02D2E141361000CB627 /* time-vscode */,
+				14F7E02D2E141361000CB627 /* time */,
 			);
-			name = "time-vscode";
+			name = time;
 			packageProductDependencies = (
 			);
 			productName = "time-vscode";
-			productReference = 14F7E02B2E141361000CB627 /* time-vscode.app */;
+			productReference = 14F7E02B2E141361000CB627 /* time.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -133,7 +133,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 14F7E0262E141361000CB627 /* Build configuration list for PBXProject "time-vscode" */;
+			buildConfigurationList = 14F7E0262E141361000CB627 /* Build configuration list for PBXProject "time" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -147,7 +147,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				14F7E02A2E141361000CB627 /* time-vscode */,
+				14F7E02A2E141361000CB627 /* time */,
 			);
 		};
 /* End PBXProject section */
@@ -362,7 +362,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		14F7E0262E141361000CB627 /* Build configuration list for PBXProject "time-vscode" */ = {
+		14F7E0262E141361000CB627 /* Build configuration list for PBXProject "time" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				14F7E0372E141363000CB627 /* Debug */,
@@ -371,7 +371,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		14F7E0392E141363000CB627 /* Build configuration list for PBXNativeTarget "time-vscode" */ = {
+		14F7E0392E141363000CB627 /* Build configuration list for PBXNativeTarget "time" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				14F7E03A2E141363000CB627 /* Debug */,
