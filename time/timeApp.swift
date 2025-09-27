@@ -50,7 +50,7 @@ struct time_vscodeApp: App {
         let schema = Schema([
             Item.self,
             Activity.self,
-            ProjectSwiftData.self,
+            Project.self,
         ])
         
         // Configure ModelConfiguration for optimal SQLite performance
