@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ProjectRowView: View {
-    @ObservedObject var project: Project
+    var project: Project
     @EnvironmentObject private var appState: AppState
 
     init(project: Project) {

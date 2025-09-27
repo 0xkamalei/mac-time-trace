@@ -8,7 +8,7 @@ import AppKit
 #endif
 
 @Model
-final class Project {
+final class Project: Equatable {
     @Attribute(.unique) var id: String
     var name: String
     var colorData: Data?
@@ -86,7 +86,7 @@ final class Project {
     
     /// Returns the path from root to this project as a string
     var hierarchyPath: String {
-        guard let parentID = parentID else { return name }
+        guard parentID != nil else { return name }
         return getHierarchyPath(visited: Set<String>())
     }
     
@@ -336,7 +336,7 @@ final class Project {
     }
     
     private func getHierarchyPath(visited: Set<String> = Set()) -> String {
-        guard let parentID = parentID else { return name }
+        guard parentID != nil else { return name }
         
         // Prevent infinite loops
         if visited.contains(self.id) {
@@ -381,70 +381,4 @@ enum ProjectError: LocalizedError {
         }
     }
 }
-
-    /// Updates this project's sort order and maintains sibling order consistency
-    /// - Parameters:
-    ///   - newSortOrder: The new sort order value
-    ///   - allProjects: All projects for sibling management
-    func updateSortOrder(to newSortOrder: Int, in allProjects: [Project]) {
-        let oldSortOrder = self.sortOrder
-        self.sortOrder = newSortOrder
-        
-        // Update siblings' sort orders if necessary
-        let siblings = getSiblingsFromTree(allProjects)
-        
-        if newSortOrder > oldSortOrder {
-            // Moving down: shift siblings up
-            for sibling in siblings {
-                if sibling.sortOrder > oldSortOrder && sibling.sortOrder <= newSortOrder {
-                    sibling.sortOrder -= 1
-                }
-            }
-        } else if newSortOrder < oldSortOrder {
-            // Moving up: shift siblings down
-            for sibling in siblings {
-                if sibling.sortOrder >= newSortOrder && sibling.sortOrder < oldSortOrder {
-                    sibling.sortOrder += 1
-                }
-            }
-        }
-    }
-    
-    /// Checks if this project can be moved to a specific parent
-    /// - Parameters:
-    ///   - targetParentID: The target parent ID
-    ///   - allProjects: All projects for validation
-    /// - Returns: True if the move is valid
-    func canMoveTo(parentID targetParentID: String?, in allProjects: [Project]) -> Bool {
-        // Can always move to root level
-        if targetParentID == nil {
-            return true
-        }
-        
-        // Find target parent
-        guard let targetParent = allProjects.first(where: { $0.id == targetParentID }) else {
-            return false
-        }
-        
-        // Check if target parent can accept this project
-        return targetParent.canBeParentOf(self)
-    }
-    
-    /// Gets the maximum sort order among siblings
-    /// - Parameter allProjects: All projects for sibling lookup
-    /// - Returns: The maximum sort order, or -1 if no siblings
-    func getMaxSortOrderAmongSiblings(in allProjects: [Project]) -> Int {
-        let siblings = getSiblingsFromTree(allProjects)
-        let allSiblingsIncludingSelf = siblings + [self]
-        return allSiblingsIncludingSelf.map { $0.sortOrder }.max() ?? -1
-    }
-    
-    /// Gets the minimum sort order among siblings
-    /// - Parameter allProjects: All projects for sibling lookup
-    /// - Returns: The minimum sort order, or 0 if no siblings
-    func getMinSortOrderAmongSiblings(in allProjects: [Project]) -> Int {
-        let siblings = getSiblingsFromTree(allProjects)
-        let allSiblingsIncludingSelf = siblings + [self]
-        return allSiblingsIncludingSelf.map { $0.sortOrder }.min() ?? 0
-    }
-}
+ 
