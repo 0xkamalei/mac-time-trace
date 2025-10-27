@@ -1,6 +1,6 @@
 import Foundation
 import SwiftData
-import OSLog
+import os
 
 /// Schema migration utility for handling data model evolution
 class SchemaMigration {
@@ -27,25 +27,20 @@ class SchemaMigration {
             logger.info("No migration needed")
         }
         
-        // Always validate data integrity after startup
         validateDataIntegrity(modelContext: modelContext)
     }
     
     /// Checks if migration is needed based on current version
     private static func shouldPerformMigration(currentVersion: String?) -> Bool {
         guard let currentVersion = currentVersion else {
-            // No version stored means this is a fresh install or pre-migration state
             return hasExistingData()
         }
         
-        // Compare versions to determine if migration is needed
         return currentVersion != currentSchemaVersion
     }
     
     /// Checks if there's existing data that might need migration
     private static func hasExistingData() -> Bool {
-        // Check if MockData was previously used by looking for specific patterns
-        // This is a heuristic approach since MockData is static
         return false // For now, assume fresh installs don't need migration
     }
     
@@ -53,14 +48,12 @@ class SchemaMigration {
     private static func migrateFromMockData(modelContext: ModelContext) throws {
         logger.info("Migrating MockData to SwiftData models...")
         
-        // Check if activities already exist to avoid duplicate migration
         let existingActivities = try fetchExistingActivities(modelContext: modelContext)
         if !existingActivities.isEmpty {
             logger.info("Activities already exist, skipping MockData migration")
             return
         }
         
-        // Migrate MockData activities to SwiftData
         var migratedCount = 0
         for mockActivity in MockData.activities {
             let activity = Activity(
@@ -77,7 +70,6 @@ class SchemaMigration {
             migratedCount += 1
         }
         
-        // Save the migrated data
         try modelContext.save()
         logger.info("Successfully migrated \(migratedCount) activities from MockData")
     }
@@ -96,15 +88,12 @@ class SchemaMigration {
             let activities = try fetchExistingActivities(modelContext: modelContext)
             var validationErrors: [String] = []
             
-            // Check for multiple active activities (only one should have endTime = nil)
             let activeActivities = activities.filter { $0.endTime == nil }
             if activeActivities.count > 1 {
                 validationErrors.append("Multiple active activities found: \(activeActivities.count)")
-                // Fix by setting endTime for all but the most recent
                 fixMultipleActiveActivities(activities: activeActivities, modelContext: modelContext)
             }
             
-            // Validate time relationships
             for activity in activities {
                 if let endTime = activity.endTime, endTime < activity.startTime {
                     validationErrors.append("Invalid time range for activity \(activity.id): endTime before startTime")
@@ -130,7 +119,6 @@ class SchemaMigration {
     private static func fixMultipleActiveActivities(activities: [Activity], modelContext: ModelContext) {
         let sortedActivities = activities.sorted { $0.startTime > $1.startTime }
         
-        // Keep the most recent active, set endTime for others
         for (index, activity) in sortedActivities.enumerated() {
             if index > 0 { // Skip the first (most recent) activity
                 activity.endTime = Date()
@@ -150,15 +138,10 @@ class SchemaMigration {
     private static func handleMigrationFailure(error: Error) {
         logger.error("Migration failed, implementing fallback strategy")
         
-        // Fallback strategies:
-        // 1. Continue with empty database
-        // 2. Log error for debugging
-        // 3. Set a flag to retry migration later
         
         UserDefaults.standard.set("failed", forKey: "MigrationStatus")
         UserDefaults.standard.set(error.localizedDescription, forKey: "MigrationError")
         
-        // Don't crash the app, just log and continue
         logger.info("Continuing with empty database after migration failure")
     }
     

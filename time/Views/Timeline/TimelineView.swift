@@ -4,28 +4,23 @@ import SwiftUI
 struct TimelineView: View {
     @State private var timelineScale: CGFloat = 1.0
     
-    // Mock activities data - replace with real data source
     private let activities: [Activity] = {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         
         return [
-            // Test: Exactly at 9:00 AM (should align with 09:00 marker)
             Activity(appName: "Xcode", appBundleId: "com.apple.dt.Xcode", duration: 3600,
                      startTime: today.addingTimeInterval(9 * 3600), // 9:00 AM
                      endTime: today.addingTimeInterval(10 * 3600), // 10:00 AM
                      icon: "hammer"),
-            // Test: Exactly at 12:00 PM (should align with 12:00 marker)
             Activity(appName: "Safari", appBundleId: "com.apple.Safari", duration: 1800,
                      startTime: today.addingTimeInterval(12 * 3600), // 12:00 PM
                      endTime: today.addingTimeInterval(12.5 * 3600), // 12:30 PM
                      icon: "safari"),
-            // Test: Exactly at 18:00 (should align with 18:00 marker)
             Activity(appName: "Terminal", appBundleId: "com.apple.Terminal", duration: 900,
                      startTime: today.addingTimeInterval(18 * 3600), // 6:00 PM
                      endTime: today.addingTimeInterval(18.25 * 3600), // 6:15 PM
                      icon: "terminal"),
-            // Test: Exactly at 0:00 (should align with 00:00 marker)
             Activity(appName: "Notes", appBundleId: "com.apple.Notes", duration: 1800,
                      startTime: today.addingTimeInterval(0 * 3600), // 12:00 AM
                      endTime: today.addingTimeInterval(0.5 * 3600), // 12:30 AM
@@ -41,7 +36,6 @@ struct TimelineView: View {
         return 140 + timelineWidth
     }
     
-    // Helper function to get app-specific colors
     private func colorForApp(_ bundleId: String) -> Color {
         switch bundleId {
         case "com.apple.dt.Xcode":
@@ -60,7 +54,6 @@ struct TimelineView: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: true) {
             VStack(spacing: 12) {
-                // Time header
                 HStack(alignment: .bottom, spacing: 0) {
                     Text("TIME")
                         .font(.caption)
@@ -87,7 +80,6 @@ struct TimelineView: View {
                 .padding(.bottom, 8)
                 .padding(.top, 4)
                 
-                // Device row
                 HStack(alignment: .center, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("MACBOOK PRO INTEL i9")
@@ -102,24 +94,18 @@ struct TimelineView: View {
                     .frame(width: 140, alignment: .leading)
                     .padding(.leading, 16)
                     
-                    // Timeline blocks
                     ZStack(alignment: .leading) {
-                        // Background timeline
                         Rectangle()
                             .fill(LinearGradient(gradient: Gradient(colors: [Color.gray.opacity(0.2), Color.gray.opacity(0.4)]), startPoint: .leading, endPoint: .trailing))
                             .frame(width: timelineWidth, height: 30)
                             .cornerRadius(5)
 
-                        // Activity blocks positioned according to time
                         Group {
                             ForEach(activities, id: \.id) { activity in
                                 let startSeconds = activity.startTime.timeIntervalSinceMidnight()
-                                // For active activities (endTime = nil), use current time for display
                                 let endSeconds = (activity.endTime ?? Date()).timeIntervalSinceMidnight()
-                                // Convert to hours for direct pixel positioning
                                 let startHours = startSeconds / 3600
                                 let endHours = endSeconds / 3600
-                                // Calculate position and width as fractions of timeline width
                                 let start = startHours / 24.0  // 0-1 range based on 24 hours
                                 let end = endHours / 24.0
                                 let width = end - start
@@ -131,7 +117,6 @@ struct TimelineView: View {
                     }
                 }
                 
-                // Project row
                 HStack(alignment: .center, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("PROJECT")
@@ -146,26 +131,21 @@ struct TimelineView: View {
                     .frame(width: 140, alignment: .leading)
                     .padding(.leading, 16)
                     
-                    // Project timeline
                     ZStack(alignment: .leading) {
-                        // Background timeline
                         Rectangle()
                             .fill(LinearGradient(gradient: Gradient(colors: [Color.gray.opacity(0.2), Color.gray.opacity(0.4)]), startPoint: .leading, endPoint: .trailing))
                             .frame(width: timelineWidth, height: 30)
                             .cornerRadius(5)
                         
-                        // Project blocks - dynamic in real app
                         Group {
                             TimeBlock(color: .orange.opacity(0.6), position: 0.1, width: 0.3)
                                 .overlay(IconOverlay(iconName: "folder", color: .orange), alignment: .leading)
                             TimeBlock(color: .purple.opacity(0.6), position: 0.5, width: 0.2)
                                 .overlay(IconOverlay(iconName: "doc", color: .purple), alignment: .leading)
-                            // more dynamic blocks here...
                         }
                     }
                 }
                 
-                // Time entries row
                 HStack(alignment: .center, spacing: 0) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("TIME ENTRIES")
@@ -180,21 +160,17 @@ struct TimelineView: View {
                     .frame(width: 140, alignment: .leading)
                     .padding(.leading, 16)
                     
-                    // Time entries blocks
                     ZStack(alignment: .leading) {
-                        // Background timeline
                         Rectangle()
                             .fill(LinearGradient(gradient: Gradient(colors: [Color.gray.opacity(0.2), Color.gray.opacity(0.4)]), startPoint: .leading, endPoint: .trailing))
                             .frame(width: timelineWidth, height: 30)
                             .cornerRadius(5)
 
-                        // Entry blocks - dynamic in real app
                         Group {
                             TimeEntryBlock(position: 0.07, width: 0.15)
                                 .overlay(IconOverlay(iconName: "timer", color: .blue), alignment: .leading)
                             TimeEntryBlock(position: 0.25, width: 0.1)
                                 .overlay(IconOverlay(iconName: "calendar", color: .green), alignment: .leading)
-                            // more dynamic blocks here...
                         }
                     }
                 }
@@ -238,7 +214,6 @@ struct TimeBlock: View {
                                             .position(x: centerX, y: 15)
                                     )
                                 
-                                // App icon in the center
                                 if let iconName = iconName {
                                     Image(systemName: iconName)
                                         .font(.system(size: 14, weight: .medium))
@@ -284,7 +259,6 @@ struct TimeEntryBlock: View {
                 }
                 .buttonStyle(.plain)
                 .onHover { _ in
-                    // Add hover effect here if needed
                 }
                 
                 Spacer()
@@ -311,7 +285,6 @@ struct IconOverlay: View {
     }
 }
 
-// Date extension for timeline calculations
 extension Date {
     func timeIntervalSinceMidnight() -> TimeInterval {
         let calendar = Calendar.current

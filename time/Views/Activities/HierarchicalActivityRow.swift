@@ -6,7 +6,6 @@ struct HierarchicalActivityRow: View {
     let group: ActivityHierarchyGroup
     @State private var isExpanded: Bool = false
     
-    // Visual styling constants for different hierarchy levels
     private var indentationLevel: CGFloat {
         switch group.level {
         case .project: return 0
@@ -53,13 +52,10 @@ struct HierarchicalActivityRow: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Main row content
             HStack {
-                // Indentation spacing
                 Spacer()
                     .frame(width: indentationLevel)
                 
-                // Expansion indicator (only show if has children)
                 if group.hasChildren {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(.caption)
@@ -70,13 +66,11 @@ struct HierarchicalActivityRow: View {
                         .frame(width: 12)
                 }
                 
-                // Level-appropriate icon
                 Image(systemName: iconName)
                     .font(.system(size: iconSize))
                     .foregroundColor(iconColor)
                     .frame(width: 20)
                 
-                // Group name
                 Text(group.name)
                     .font(fontSize)
                     .foregroundColor(textColor)
@@ -84,9 +78,7 @@ struct HierarchicalActivityRow: View {
                 
                 Spacer()
                 
-                // Aggregated data display
                 HStack(spacing: 8) {
-                    // Item count (only show if > 1 or has children)
                     if group.itemCount > 1 || group.hasChildren {
                         Text("\(group.itemCount)")
                             .font(.caption2)
@@ -97,7 +89,6 @@ struct HierarchicalActivityRow: View {
                             .clipShape(Capsule())
                     }
                     
-                    // Duration display
                     Text(group.durationString)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -114,15 +105,12 @@ struct HierarchicalActivityRow: View {
                 }
             }
             
-            // Expanded children (recursive rendering)
             if isExpanded && group.hasChildren {
                 VStack(alignment: .leading, spacing: 0) {
-                    // Render child groups recursively
                     ForEach(group.children) { childGroup in
                         HierarchicalActivityRow(group: childGroup)
                     }
                     
-                    // Render individual activities at the leaf level
                     ForEach(group.activities) { activity in
                         ActivityLeafRow(activity: activity, indentationLevel: indentationLevel + 20)
                     }
@@ -131,7 +119,6 @@ struct HierarchicalActivityRow: View {
         }
     }
     
-    // Helper computed properties for styling
     private var iconSize: CGFloat {
         switch group.level {
         case .project: return 16
@@ -173,21 +160,17 @@ struct ActivityLeafRow: View {
     
     var body: some View {
         HStack {
-            // Indentation spacing
             Spacer()
                 .frame(width: indentationLevel)
             
-            // No expansion indicator for leaf nodes
             Spacer()
                 .frame(width: 12)
             
-            // Activity icon
             Image(systemName: activity.icon)
                 .font(.system(size: 10))
                 .foregroundColor(.gray)
                 .frame(width: 20)
             
-            // Activity title or app name
             Text(activity.appTitle ?? activity.appName)
                 .font(.caption2)
                 .foregroundColor(Color.secondary.opacity(0.7))
@@ -195,7 +178,6 @@ struct ActivityLeafRow: View {
             
             Spacer()
             
-            // Activity duration
             Text(activity.durationString)
                 .font(.caption2)
                 .foregroundColor(Color.secondary.opacity(0.7))
@@ -206,7 +188,6 @@ struct ActivityLeafRow: View {
 }
 
 #Preview {
-    // Create sample data for preview
     let sampleActivity = Activity(
         appName: "Safari",
         appBundleId: "com.apple.Safari",

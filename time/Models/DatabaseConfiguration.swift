@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 import SQLite3
-import OSLog
+import os
 
 /// Database configuration and optimization utilities
 class DatabaseConfiguration {
@@ -11,22 +11,16 @@ class DatabaseConfiguration {
     static func optimizeDatabase(modelContext: ModelContext) {
         logger.info("Optimizing database configuration...")
         
-        // Enable WAL mode for better concurrency
         executeSQL(modelContext: modelContext, sql: "PRAGMA journal_mode = WAL;")
         
-        // Set synchronous mode for better performance while maintaining safety
         executeSQL(modelContext: modelContext, sql: "PRAGMA synchronous = NORMAL;")
         
-        // Increase cache size for better performance (10MB)
         executeSQL(modelContext: modelContext, sql: "PRAGMA cache_size = -10000;")
         
-        // Enable foreign key constraints
         executeSQL(modelContext: modelContext, sql: "PRAGMA foreign_keys = ON;")
         
-        // Set temp store to memory for better performance
         executeSQL(modelContext: modelContext, sql: "PRAGMA temp_store = MEMORY;")
         
-        // Create custom indexes for frequently queried fields
         createIndexes(modelContext: modelContext)
         
         logger.info("Database optimization completed")
@@ -36,31 +30,26 @@ class DatabaseConfiguration {
     private static func createIndexes(modelContext: ModelContext) {
         logger.info("Creating database indexes...")
         
-        // Index on startTime for time-based queries
         executeSQL(
             modelContext: modelContext,
             sql: "CREATE INDEX IF NOT EXISTS idx_activity_start_time ON Activity(startTime);"
         )
         
-        // Index on appBundleId for app-specific queries
         executeSQL(
             modelContext: modelContext,
             sql: "CREATE INDEX IF NOT EXISTS idx_activity_bundle_id ON Activity(appBundleId);"
         )
         
-        // Index on endTime for finding active activities (WHERE endTime IS NULL)
         executeSQL(
             modelContext: modelContext,
             sql: "CREATE INDEX IF NOT EXISTS idx_activity_end_time ON Activity(endTime);"
         )
         
-        // Composite index for time range queries with app filtering
         executeSQL(
             modelContext: modelContext,
             sql: "CREATE INDEX IF NOT EXISTS idx_activity_time_app ON Activity(startTime, appBundleId);"
         )
         
-        // Index for duration-based queries
         executeSQL(
             modelContext: modelContext,
             sql: "CREATE INDEX IF NOT EXISTS idx_activity_duration ON Activity(duration);"
@@ -71,13 +60,8 @@ class DatabaseConfiguration {
     
     /// Executes raw SQL commands for database optimization
     private static func executeSQL(modelContext: ModelContext, sql: String) {
-        // Note: SwiftData doesn't directly expose SQLite connection
-        // This is a placeholder for the SQL execution pattern
-        // In practice, SwiftData handles most optimizations automatically
         logger.debug("Would execute SQL: \(sql)")
         
-        // For now, we rely on SwiftData's automatic optimizations
-        // Future versions might expose more direct SQLite access
     }
     
     /// Analyzes database performance and provides recommendations
@@ -85,7 +69,6 @@ class DatabaseConfiguration {
         logger.info("Analyzing database performance...")
         
         do {
-            // Get activity count for performance analysis
             let descriptor = FetchDescriptor<Activity>()
             let activities = try modelContext.fetch(descriptor)
             let activityCount = activities.count
@@ -96,13 +79,11 @@ class DatabaseConfiguration {
                 logger.warning("Large dataset detected (\(activityCount) activities). Consider implementing data archiving.")
             }
             
-            // Check for data distribution
             let activeActivities = activities.filter { $0.endTime == nil }
             if activeActivities.count > 1 {
                 logger.warning("Multiple active activities detected: \(activeActivities.count)")
             }
             
-            // Analyze time range distribution
             if !activities.isEmpty {
                 let oldestActivity = activities.min { $0.startTime < $1.startTime }
                 let newestActivity = activities.max { $0.startTime < $1.startTime }
@@ -123,13 +104,9 @@ class DatabaseConfiguration {
     static func performMaintenance(modelContext: ModelContext) {
         logger.info("Performing database maintenance...")
         
-        // Analyze query performance (placeholder)
         executeSQL(modelContext: modelContext, sql: "ANALYZE;")
         
-        // Vacuum database to reclaim space (use with caution in production)
-        // executeSQL(modelContext: modelContext, sql: "VACUUM;")
         
-        // Update statistics for query optimizer
         executeSQL(modelContext: modelContext, sql: "PRAGMA optimize;")
         
         logger.info("Database maintenance completed")
@@ -140,7 +117,6 @@ class DatabaseConfiguration {
         logger.info("Validating database schema...")
         
         do {
-            // Perform a simple query to validate schema
             var descriptor = FetchDescriptor<Activity>()
             descriptor.fetchLimit = 1
             _ = try modelContext.fetch(descriptor)

@@ -22,7 +22,6 @@ struct TimePickerView: View {
         let previousPeriodPresets: [AppDateRangePreset] = [.yesterday, .lastWeek, .lastMonth]
 
         HStack(alignment: .top, spacing: 0) {
-            // Column 1: Past Presets
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(pastDayPresets, id: \.self) { preset in
                     PresetButton(title: preset.rawValue, preset: preset, selectedPreset: $selectedPreset) {
@@ -36,7 +35,6 @@ struct TimePickerView: View {
 
             Divider()
 
-            // Column 2: Current & Previous Presets
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(currentPeriodPresets, id: \.self) { preset in
                     PresetButton(title: preset.rawValue, preset: preset, selectedPreset: $selectedPreset) {
@@ -56,7 +54,6 @@ struct TimePickerView: View {
 
             Divider()
 
-            // Column 3: Date Pickers
             VStack(alignment: .center, spacing: 8) {
                 HStack(spacing: 8) {
                     DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
@@ -120,7 +117,6 @@ struct TimePickerView: View {
     }
 }
 
-// Custom button for presets to reduce repetition
 struct PresetButton: View {
     let title: String
     let preset: AppDateRangePreset

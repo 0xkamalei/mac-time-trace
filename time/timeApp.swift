@@ -1,13 +1,7 @@
-//
-//  time_vscodeApp.swift
-//  time-vscode
-//
-//  Created by seven on 2025/7/1.
-//
 
 import SwiftUI
 import SwiftData
-import OSLog
+import os
 
 // MARK: - App Delegate for Lifecycle Management
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -17,11 +11,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         logger.info("Application will terminate - stopping activity tracking")
         
-        // Stop activity tracking synchronously to ensure cleanup completes
         if let modelContainer = modelContainer {
             let context = modelContainer.mainContext
             
-            // Run synchronously to ensure completion before termination
             let semaphore = DispatchSemaphore(value: 0)
             
             Task { @MainActor in
@@ -30,7 +22,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 semaphore.signal()
             }
             
-            // Wait for cleanup to complete (with timeout)
             _ = semaphore.wait(timeout: .now() + 2.0)
         }
     }
@@ -46,14 +37,12 @@ struct time_vscodeApp: App {
     private static let logger = Logger(subsystem: "com.time.vscode", category: "App")
     
     var sharedModelContainer: ModelContainer = {
-        // Define schema with all models
         let schema = Schema([
             Item.self,
             Activity.self,
             Project.self,
         ])
         
-        // Configure ModelConfiguration for optimal SQLite performance
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
@@ -65,16 +54,12 @@ struct time_vscodeApp: App {
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
             
-            // Get main context for initialization
             let context = container.mainContext
             
-            // Perform migration if needed
             SchemaMigration.performMigrationIfNeeded(modelContext: context)
             
-            // Optimize database configuration
             DatabaseConfiguration.optimizeDatabase(modelContext: context)
             
-            // Validate schema integrity
             if !DatabaseConfiguration.validateSchema(modelContext: context) {
                 logger.error("Schema validation failed during initialization")
             }
@@ -94,14 +79,12 @@ struct time_vscodeApp: App {
             ContentView()
                 .environmentObject(appState)
                 .onAppear {
-                    // Set model container reference in app delegate for lifecycle management
                     appDelegate.modelContainer = sharedModelContainer
                     startActivityTracking()
                 }
         }
         .modelContainer(sharedModelContainer)
         .commands {
-            // Add app termination handling
             CommandGroup(replacing: .appTermination) {
                 Button("Quit time-vscode") {
                     stopActivityTrackingAndQuit()
@@ -129,10 +112,8 @@ struct time_vscodeApp: App {
             ActivityManager.shared.stopTracking(modelContext: context)
             Self.logger.info("Activity tracking stopped before app termination")
             
-            // Give a moment for cleanup to complete
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             
-            // Quit the app
             NSApplication.shared.terminate(nil)
         }
     }

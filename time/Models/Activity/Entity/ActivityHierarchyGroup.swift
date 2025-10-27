@@ -48,12 +48,10 @@ struct ActivityHierarchyGroup: Identifiable {
         self.children = children
         self.activities = activities
 
-        // Calculate total duration from children and direct activities
         let childrenDuration = children.reduce(0) { $0 + $1.totalDuration }
         let activitiesDuration = activities.reduce(0) { $0 + $1.duration }
         totalDuration = childrenDuration + activitiesDuration
 
-        // Calculate total item count
         let childrenCount = children.reduce(0) { $0 + $1.itemCount }
         itemCount = childrenCount + activities.count
     }

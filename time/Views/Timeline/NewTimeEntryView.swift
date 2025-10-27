@@ -1,7 +1,10 @@
 import SwiftUI
 
+import os
+
 struct NewTimeEntryView: View {
     @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var projectManager: ProjectManager
     @Binding var isPresented: Bool
 
     @State private var selectedProject: Project? // Assuming Project model exists
@@ -9,8 +12,8 @@ struct NewTimeEntryView: View {
     @State private var newSubprojectName = ""
     @State private var title: String = ""
     @State private var notes: String = ""
-    @State private var startTime: Date = Date()
-    @State private var endTime: Date = Date()
+    @State private var startTime: Date = .init()
+    @State private var endTime: Date = .init()
     @State private var duration: TimeInterval = 0
 
     var body: some View {
@@ -23,11 +26,9 @@ struct NewTimeEntryView: View {
                     Text("Project:").frame(width: 120, alignment: .leading)
                     VStack(alignment: .leading) {
                         Picker("", selection: $selectedProject) {
-                            // No Project option
                             Text("(No Project)").tag(nil as Project?)
-                            
-                            // Tree structure projects
-                            ForEach(appState.projectTree, id: \.id) { project in
+
+                            ForEach(projectManager.buildProjectTree(), id: \.id) { project in
                                 ProjectPickerItem(project: project, level: 0)
                             }
                         }
@@ -37,10 +38,17 @@ struct NewTimeEntryView: View {
                             TextField("New Subproject Name", text: $newSubprojectName)
                                 .onSubmit {
                                     if !newSubprojectName.isEmpty, let parent = selectedProject {
-                                        let newProject = Project(id: UUID().uuidString, name: newSubprojectName, color: .gray, parentID: parent.id)
-                                        appState.addProject(newProject)
-                                        selectedProject = newProject
-                                        newSubprojectName = ""
+                                        Task {
+                                            do {
+                                                let newProject = try await projectManager.createProject(name: newSubprojectName, color: .gray, parentID: parent.id)
+                                                await MainActor.run {
+                                                    selectedProject = newProject
+                                                    newSubprojectName = ""
+                                                }
+                                            } catch {
+                                                Logger.ui.error("Failed to create project: \(error)")
+                                            }
+                                        }
                                     }
                                 }
                         } else {
@@ -83,7 +91,7 @@ struct NewTimeEntryView: View {
                 HStack {
                     Text("Duration:").frame(width: 120, alignment: .leading)
                     Text(DateComponentsFormatter.shortTime.string(from: duration) ?? "00:00")
-                    Stepper("", value: $duration, in: 0...Double.infinity, step: 60)
+                    Stepper("", value: $duration, in: 0 ... Double.infinity, step: 60)
                         .labelsHidden()
                 }
             }
@@ -97,7 +105,6 @@ struct NewTimeEntryView: View {
                 Spacer()
 
                 Button("Add Time Entry") {
-                    // TODO: Add time entry logic
                     isPresented = false
                 }
                 .keyboardShortcut(.defaultAction)
