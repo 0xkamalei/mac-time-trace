@@ -38,7 +38,6 @@ private struct ZoomableView: NSViewRepresentable {
         var parent: ZoomableView
         var view: NSView? {
             didSet {
-                // Add a scroll wheel event monitor
                 NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
                     self?.handleScroll(event: event) ?? event
                 }
@@ -50,7 +49,6 @@ private struct ZoomableView: NSViewRepresentable {
         }
 
         @objc func handleMagnification(recognizer: NSMagnificationGestureRecognizer) {
-            // Handle standard pinch-to-zoom gestures
             let newScale = max(0.5, min(3.0, recognizer.magnification + parent.scale))
             parent.scale = newScale
         }
@@ -58,20 +56,16 @@ private struct ZoomableView: NSViewRepresentable {
         func handleScroll(event: NSEvent) -> NSEvent? {
             guard let view = self.view, let _ = view.window, view.isMouseInView else { return event }
             
-            // Check if the command key is pressed
             if event.modifierFlags.contains(.command) {
                 let deltaY = event.scrollingDeltaY
                 let zoomFactor = deltaY * 0.02 // Adjust sensitivity
                 
-                // Update the scale, clamping between min and max values
                 let newScale = max(0.5, min(5.0, parent.scale - zoomFactor))
                 parent.scale = newScale
                 
-                // Return nil to consume the event and prevent scrolling
                 return nil
             }
             
-            // Return the event to allow normal scrolling
             return event
         }
     }
@@ -83,7 +77,6 @@ extension View {
     }
 }
 
-// Helper to check if the mouse is inside the view's bounds
 extension NSView {
     var isMouseInView: Bool {
         guard let window = self.window else { return false }

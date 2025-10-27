@@ -29,7 +29,6 @@ final class Activity {
         if let endTime = endTime {
             return endTime.timeIntervalSince(startTime)
         } else {
-            // For ongoing activities, calculate duration from start to now
             return Date().timeIntervalSince(startTime)
         }
     }

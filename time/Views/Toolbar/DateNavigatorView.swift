@@ -99,7 +99,6 @@ struct DateNavigatorView: View {
                 amount *= (dayCount + 1)
             }
         } else {
-            // Handle custom date ranges
             let dayDifference = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate).day ?? 0
             component = .day
             amount *= (dayDifference + 1)

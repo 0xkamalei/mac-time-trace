@@ -423,7 +423,6 @@ class ActivityDataProcessor {
 
     /// Identifies activities that are not assigned to any project
     static func getUnassignedActivities(_ activities: [Activity]) -> [Activity] {
-        // Deprecated: use project association APIs
         return activities
     }
 
