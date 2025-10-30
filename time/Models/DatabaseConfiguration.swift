@@ -92,18 +92,18 @@ class DatabaseConfiguration {
             modelContext: modelContext,
             sql: "CREATE INDEX IF NOT EXISTS idx_timeentry_project_time ON TimeEntry(projectId, startTime);"
         )
-        
+
         // TimerSession indexes
         executeSQL(
             modelContext: modelContext,
             sql: "CREATE INDEX IF NOT EXISTS idx_timersession_start_time ON TimerSession(startTime);"
         )
-        
+
         executeSQL(
             modelContext: modelContext,
             sql: "CREATE INDEX IF NOT EXISTS idx_timersession_project ON TimerSession(projectId);"
         )
-        
+
         executeSQL(
             modelContext: modelContext,
             sql: "CREATE INDEX IF NOT EXISTS idx_timersession_active ON TimerSession(isCompleted, endTime);"
@@ -301,7 +301,7 @@ class DatabaseConfiguration {
             var timeEntryDescriptor = FetchDescriptor<TimeEntry>()
             timeEntryDescriptor.fetchLimit = 1
             _ = try modelContext.fetch(timeEntryDescriptor)
-            
+
             // Validate TimerSession schema
             var timerSessionDescriptor = FetchDescriptor<TimerSession>()
             timerSessionDescriptor.fetchLimit = 1

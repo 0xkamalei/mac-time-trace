@@ -1,16 +1,15 @@
-import SwiftUI
 import Foundation
+import SwiftUI
 
 /// A performance-optimized utility class that handles complex drag-and-drop logic for project hierarchies
 class ProjectDragDropHandler: ObservableObject {
-    
     // MARK: - Performance Optimization Cache
-    
+
     /// Cache for expensive computations to avoid recalculation during drag operations
     private static var positionCache: [String: DropPosition] = [:]
     private static var validationCache: [String: DragValidationResult] = [:]
     private static var cacheInvalidationTimer: Timer?
-    
+
     /// Clears performance caches periodically to prevent memory bloat
     private static func setupCacheInvalidation() {
         cacheInvalidationTimer?.invalidate()
@@ -19,9 +18,9 @@ class ProjectDragDropHandler: ObservableObject {
             validationCache.removeAll()
         }
     }
-    
+
     // MARK: - Drop Position Detection
-    
+
     /// Determines the precise drop position based on cursor location within a project row with caching
     /// - Parameters:
     ///   - location: The cursor location within the drop target
@@ -34,21 +33,21 @@ class ProjectDragDropHandler: ObservableObject {
         rowBounds: CGRect
     ) -> DropPosition {
         let cacheKey = "\(targetProject.id)_\(Int(location.y))_\(Int(rowBounds.height))"
-        
+
         if let cachedPosition = positionCache[cacheKey] {
             return cachedPosition
         }
-        
+
         if cacheInvalidationTimer == nil {
             setupCacheInvalidation()
         }
-        
+
         let rowHeight = rowBounds.height
         let topThreshold = rowHeight * 0.25
         let bottomThreshold = rowHeight * 0.75
-        
+
         let position: DropPosition
-        
+
         if location.y < topThreshold {
             position = .above
         } else if location.y > bottomThreshold {
@@ -56,12 +55,12 @@ class ProjectDragDropHandler: ObservableObject {
         } else {
             position = targetProject.canAcceptChildren ? .inside : .below
         }
-        
+
         positionCache[cacheKey] = position
-        
+
         return position
     }
-    
+
     /// Gets drop position with enhanced boundary detection
     /// - Parameters:
     ///   - location: The cursor location
@@ -76,24 +75,24 @@ class ProjectDragDropHandler: ObservableObject {
         draggedProject: Project
     ) -> DropPosition {
         let basePosition = getDropPosition(for: location, targetProject: targetProject, rowBounds: rowBounds)
-        
+
         switch basePosition {
         case .inside:
             if !targetProject.canBeParentOf(draggedProject) {
                 return .below // Fallback to below if can't be parent
             }
             return .inside
-            
+
         case .above, .below:
             return basePosition
-            
+
         case .invalid:
             return .invalid
         }
     }
-    
+
     // MARK: - Visual Feedback
-    
+
     /// Creates visual feedback configuration for different drop zones
     /// - Parameter position: The drop position
     /// - Returns: Visual feedback configuration
@@ -107,7 +106,7 @@ class ProjectDragDropHandler: ObservableObject {
                 opacity: 0.8,
                 thickness: 2
             )
-            
+
         case .below:
             return DropVisualFeedback(
                 indicatorType: .line,
@@ -116,7 +115,7 @@ class ProjectDragDropHandler: ObservableObject {
                 opacity: 0.8,
                 thickness: 2
             )
-            
+
         case .inside:
             return DropVisualFeedback(
                 indicatorType: .border,
@@ -125,7 +124,7 @@ class ProjectDragDropHandler: ObservableObject {
                 opacity: 0.6,
                 thickness: 2
             )
-            
+
         case .invalid:
             return DropVisualFeedback(
                 indicatorType: .border,
@@ -136,9 +135,9 @@ class ProjectDragDropHandler: ObservableObject {
             )
         }
     }
-    
+
     // MARK: - Boundary Detection
-    
+
     /// Validates if a drop area is within valid boundaries
     /// - Parameters:
     ///   - location: The drop location
@@ -153,7 +152,7 @@ class ProjectDragDropHandler: ObservableObject {
         let validArea = bounds.insetBy(dx: margin, dy: margin)
         return validArea.contains(location)
     }
-    
+
     /// Detects if the cursor is near the edge of a container for auto-scroll
     /// - Parameters:
     ///   - location: The cursor location
@@ -172,9 +171,9 @@ class ProjectDragDropHandler: ObservableObject {
         }
         return nil
     }
-    
+
     // MARK: - Drop Position Preview
-    
+
     /// Creates a preview indicator for the drop position
     /// - Parameters:
     ///   - position: The drop position
@@ -183,10 +182,10 @@ class ProjectDragDropHandler: ObservableObject {
     @ViewBuilder
     static func createDropPreview(
         for position: DropPosition,
-        targetProject: Project
+        targetProject _: Project
     ) -> some View {
         let feedback = getVisualFeedback(for: position)
-        
+
         switch feedback.indicatorType {
         case .line:
             Rectangle()
@@ -194,7 +193,7 @@ class ProjectDragDropHandler: ObservableObject {
                 .frame(height: feedback.thickness)
                 .opacity(feedback.opacity)
                 .animation(.easeInOut(duration: 0.2), value: position)
-                
+
         case .border:
             RoundedRectangle(cornerRadius: 4)
                 .stroke(feedback.color, lineWidth: feedback.thickness)
@@ -202,9 +201,9 @@ class ProjectDragDropHandler: ObservableObject {
                 .animation(.easeInOut(duration: 0.2), value: position)
         }
     }
-    
+
     // MARK: - Drag Validation
-    
+
     /// Validates if a drag operation is allowed with performance caching
     /// - Parameters:
     ///   - draggedProject: The project being dragged
@@ -216,89 +215,85 @@ class ProjectDragDropHandler: ObservableObject {
         targetProject: Project,
         position: DropPosition
     ) -> DragValidationResult {
-        
         let cacheKey = "\(draggedProject.id)_\(targetProject.id)_\(position)"
-        
+
         if let cachedResult = validationCache[cacheKey] {
             return cachedResult
         }
-        
+
         let result: DragValidationResult
-        
+
         if draggedProject.id == targetProject.id {
             result = .invalid(.selfDrop)
-        }
-        else if isCircularReference(draggedProject: draggedProject, targetProject: targetProject) {
+        } else if isCircularReference(draggedProject: draggedProject, targetProject: targetProject) {
             result = .invalid(.circularReference)
-        }
-        else {
+        } else {
             result = validatePositionSpecificConstraints(
                 draggedProject: draggedProject,
                 targetProject: targetProject,
                 position: position
             )
         }
-        
+
         validationCache[cacheKey] = result
-        
+
         return result
     }
-    
+
     /// Optimized circular reference detection using breadth-first search
     private static func isCircularReference(draggedProject: Project, targetProject: Project) -> Bool {
         var queue: [Project] = [targetProject]
         var visited: Set<String> = []
-        
+
         while !queue.isEmpty {
             let current = queue.removeFirst()
-            
+
             if visited.contains(current.id) {
                 continue
             }
             visited.insert(current.id)
-            
+
             if current.id == draggedProject.id {
                 return true
             }
-            
+
             if let parentID = current.parentID {
                 if parentID == draggedProject.id {
                     return true
                 }
             }
         }
-        
+
         return false
     }
-    
+
     /// Validates position-specific constraints with optimized logic
     private static func validatePositionSpecificConstraints(
         draggedProject: Project,
         targetProject: Project,
         position: DropPosition
     ) -> DragValidationResult {
-        
         switch position {
         case .inside:
             if targetProject.depth >= 4 { // Max 5 levels (0-4)
                 return .invalid(.hierarchyTooDeep)
             }
-            
+
             if !targetProject.canAcceptChildren {
                 return .invalid(.cannotAcceptChildren)
             }
-            
+
         case .above, .below:
             if let targetParentID = targetProject.parentID {
                 if draggedProject.depth >= 5 { // Would exceed max depth
                     return .invalid(.hierarchyTooDeep)
                 }
             }
-            
+
         case .invalid:
             return .invalid(.invalidPosition)
         }
-        
+
         return .valid
     }
 }
@@ -311,13 +306,13 @@ struct DropVisualFeedback {
         case line
         case border
     }
-    
+
     enum Position {
         case top
         case bottom
         case overlay
     }
-    
+
     let indicatorType: IndicatorType
     let position: Position
     let color: Color
@@ -344,7 +339,7 @@ enum DragError {
     case hierarchyTooDeep
     case cannotAcceptChildren
     case invalidPosition
-    
+
     var localizedDescription: String {
         switch self {
         case .selfDrop:

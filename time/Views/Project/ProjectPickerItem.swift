@@ -3,34 +3,34 @@ import SwiftUI
 struct ProjectPickerItem: View {
     let project: Project
     let level: Int
-    
+
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    
+
     var body: some View {
         Group {
             projectRow
-            
+
             ForEach(project.children.sorted(by: { $0.sortOrder < $1.sortOrder }), id: \.id) { child in
                 ProjectPickerItem(project: child, level: level + 1)
             }
         }
     }
-    
+
     // MARK: - Private Views
-    
+
     private var projectRow: some View {
         HStack(spacing: dynamicSpacing) {
             hierarchyIndentation
-            
+
             hierarchyIndicator
-            
+
             colorIndicator
-            
+
             projectName
-            
+
             Spacer(minLength: 8)
-            
+
             statusIndicators
         }
         .font(.system(size: dynamicFontSize, weight: .regular, design: .default))
@@ -41,13 +41,12 @@ struct ProjectPickerItem: View {
         .accessibilityHint(accessibilityHint)
         .accessibilityValue(accessibilityValue)
         .accessibilityAddTraits(.isButton)
-        .accessibilityAction(.default) {
-        }
+        .accessibilityAction(.default) {}
     }
-    
+
     private var hierarchyIndentation: some View {
         HStack(spacing: 0) {
-            ForEach(0..<level, id: \.self) { indentLevel in
+            ForEach(0 ..< level, id: \.self) { _ in
                 Rectangle()
                     .fill(Color.clear)
                     .frame(width: dynamicIndentationWidth, height: 1)
@@ -55,7 +54,7 @@ struct ProjectPickerItem: View {
             }
         }
     }
-    
+
     private var hierarchyIndicator: some View {
         Group {
             if level > 0 {
@@ -67,7 +66,7 @@ struct ProjectPickerItem: View {
             }
         }
     }
-    
+
     private var hierarchySymbol: String {
         switch level {
         case 1:
@@ -80,7 +79,7 @@ struct ProjectPickerItem: View {
             return "circle.fill"
         }
     }
-    
+
     private var colorIndicator: some View {
         Circle()
             .fill(project.color)
@@ -91,7 +90,7 @@ struct ProjectPickerItem: View {
             )
             .accessibilityHidden(true) // Color information included in accessibility label
     }
-    
+
     private var projectName: some View {
         Text(project.name)
             .foregroundColor(.primary)
@@ -100,7 +99,7 @@ struct ProjectPickerItem: View {
             .multilineTextAlignment(.leading)
             .accessibilityHidden(true) // Included in main accessibility label
     }
-    
+
     private var statusIndicators: some View {
         HStack(spacing: 2) {
             if !project.children.isEmpty {
@@ -109,7 +108,7 @@ struct ProjectPickerItem: View {
                     .foregroundColor(.secondary)
                     .accessibilityHidden(true) // Included in accessibility value
             }
-            
+
             if level > 2 {
                 Text("\(level)")
                     .font(.system(size: dynamicDepthIndicatorSize, weight: .medium, design: .monospaced))
@@ -124,9 +123,9 @@ struct ProjectPickerItem: View {
             }
         }
     }
-    
+
     // MARK: - Dynamic Type Support
-    
+
     private var dynamicFontSize: CGFloat {
         switch dynamicTypeSize {
         case .xSmall, .small:
@@ -155,15 +154,15 @@ struct ProjectPickerItem: View {
             return 13
         }
     }
-    
+
     private var dynamicSpacing: CGFloat {
         dynamicTypeSize.isAccessibilitySize ? 6 : 4
     }
-    
+
     private var dynamicVerticalPadding: CGFloat {
         dynamicTypeSize.isAccessibilitySize ? 4 : 2
     }
-    
+
     private var dynamicIndentationWidth: CGFloat {
         switch dynamicTypeSize {
         case .xSmall, .small, .medium:
@@ -176,7 +175,7 @@ struct ProjectPickerItem: View {
             return 24
         }
     }
-    
+
     private var dynamicIconSize: CGFloat {
         switch dynamicTypeSize {
         case .xSmall, .small:
@@ -191,11 +190,11 @@ struct ProjectPickerItem: View {
             return 14
         }
     }
-    
+
     private var dynamicIconFrameSize: CGFloat {
         dynamicIconSize + 2
     }
-    
+
     private var dynamicColorIndicatorSize: CGFloat {
         switch dynamicTypeSize {
         case .xSmall, .small:
@@ -210,7 +209,7 @@ struct ProjectPickerItem: View {
             return 12
         }
     }
-    
+
     private var dynamicStatusIconSize: CGFloat {
         switch dynamicTypeSize {
         case .xSmall, .small:
@@ -223,7 +222,7 @@ struct ProjectPickerItem: View {
             return 11
         }
     }
-    
+
     private var dynamicDepthIndicatorSize: CGFloat {
         switch dynamicTypeSize {
         case .xSmall, .small:
@@ -236,24 +235,24 @@ struct ProjectPickerItem: View {
             return 10
         }
     }
-    
+
     private var dynamicLineLimit: Int {
         dynamicTypeSize.isAccessibilitySize ? 2 : 1
     }
-    
+
     // MARK: - Accessibility Support
-    
+
     private var accessibilityLabel: String {
         var label = project.name
-        
+
         if level > 0 {
             let levelDescription = level == 1 ? "sub-project" : "level \(level) project"
             label = "\(label), \(levelDescription)"
         }
-        
+
         return label
     }
-    
+
     private var accessibilityHint: String {
         if level == 0 {
             return "Top-level project. Double-tap to select."
@@ -261,35 +260,35 @@ struct ProjectPickerItem: View {
             return "Nested project at level \(level). Double-tap to select."
         }
     }
-    
+
     private var accessibilityValue: String {
         var values: [String] = []
-        
+
         let colorName = colorAccessibilityName(for: project.color)
         values.append("Color: \(colorName)")
-        
+
         if !project.children.isEmpty {
             let childCount = project.children.count
             let childText = childCount == 1 ? "1 sub-project" : "\(childCount) sub-projects"
             values.append("Contains \(childText)")
         }
-        
+
         if level > 0 {
             values.append("Nested under parent project")
         }
-        
+
         return values.joined(separator: ", ")
     }
-    
+
     private func colorAccessibilityName(for color: Color) -> String {
         let colorComponents = color.cgColor?.components ?? [0, 0, 0, 1]
-        
+
         guard colorComponents.count >= 3 else { return "Unknown" }
-        
+
         let red = colorComponents[0]
         let green = colorComponents[1]
         let blue = colorComponents[2]
-        
+
         if red > 0.8 && green < 0.3 && blue < 0.3 {
             return "Red"
         } else if red < 0.3 && green > 0.8 && blue < 0.3 {

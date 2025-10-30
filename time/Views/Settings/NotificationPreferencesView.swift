@@ -3,7 +3,7 @@ import SwiftUI
 struct NotificationPreferencesView: View {
     @ObservedObject var notificationManager: NotificationManager
     @State private var showingPermissionAlert = false
-    
+
     var body: some View {
         Form {
             // General Settings Section
@@ -21,32 +21,32 @@ struct NotificationPreferencesView: View {
                         }
                         notificationManager.savePreferences()
                     }
-                
+
                 if notificationManager.preferences.notificationsEnabled {
                     Toggle("Respect Quiet Hours", isOn: $notificationManager.preferences.respectQuietHours)
                         .onChange(of: notificationManager.preferences.respectQuietHours) { _, _ in
                             notificationManager.savePreferences()
                         }
-                    
+
                     if notificationManager.preferences.respectQuietHours {
                         QuietHoursSection(notificationManager: notificationManager)
                     }
                 }
             }
-            
+
             if notificationManager.preferences.notificationsEnabled {
                 // Timer Notifications Section
                 TimerNotificationsSection(notificationManager: notificationManager)
-                
+
                 // Tracking Status Section
                 TrackingStatusSection(notificationManager: notificationManager)
-                
+
                 // Productivity Goals Section
                 ProductivityGoalsSection(notificationManager: notificationManager)
-                
+
                 // Inactivity Reminders Section
                 InactivityRemindersSection(notificationManager: notificationManager)
-                
+
                 // Summary Notifications Section
                 SummaryNotificationsSection(notificationManager: notificationManager)
             }
@@ -59,7 +59,7 @@ struct NotificationPreferencesView: View {
                     NSWorkspace.shared.open(url)
                 }
             }
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {}
         } message: {
             Text("Please enable notifications for this app in System Preferences to receive alerts.")
         }
@@ -70,7 +70,7 @@ struct NotificationPreferencesView: View {
 
 struct QuietHoursSection: View {
     @ObservedObject var notificationManager: NotificationManager
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -78,25 +78,25 @@ struct QuietHoursSection: View {
                 Spacer()
                 DatePicker("", selection: Binding(
                     get: { notificationManager.preferences.quietHoursStart ?? Date() },
-                    set: { 
+                    set: {
                         notificationManager.preferences.quietHoursStart = $0
                         notificationManager.savePreferences()
                     }
                 ), displayedComponents: .hourAndMinute)
-                .labelsHidden()
+                    .labelsHidden()
             }
-            
+
             HStack {
                 Text("Quiet Hours End:")
                 Spacer()
                 DatePicker("", selection: Binding(
                     get: { notificationManager.preferences.quietHoursEnd ?? Date() },
-                    set: { 
+                    set: {
                         notificationManager.preferences.quietHoursEnd = $0
                         notificationManager.savePreferences()
                     }
                 ), displayedComponents: .hourAndMinute)
-                .labelsHidden()
+                    .labelsHidden()
             }
         }
         .padding(.leading, 20)
@@ -107,20 +107,20 @@ struct QuietHoursSection: View {
 
 struct TimerNotificationsSection: View {
     @ObservedObject var notificationManager: NotificationManager
-    
+
     var body: some View {
         Section("Timer Notifications") {
             Toggle("Timer Completion Alerts", isOn: $notificationManager.preferences.timerNotificationsEnabled)
                 .onChange(of: notificationManager.preferences.timerNotificationsEnabled) { _, _ in
                     notificationManager.savePreferences()
                 }
-            
+
             if notificationManager.preferences.timerNotificationsEnabled {
                 Toggle("Play Sounds", isOn: $notificationManager.preferences.timerSoundsEnabled)
                     .onChange(of: notificationManager.preferences.timerSoundsEnabled) { _, _ in
                         notificationManager.savePreferences()
                     }
-                
+
                 HStack {
                     Text("Sound:")
                     Spacer()
@@ -135,12 +135,12 @@ struct TimerNotificationsSection: View {
                         notificationManager.savePreferences()
                     }
                 }
-                
+
                 Toggle("Interval Notifications", isOn: $notificationManager.preferences.timerIntervalNotificationsEnabled)
                     .onChange(of: notificationManager.preferences.timerIntervalNotificationsEnabled) { _, _ in
                         notificationManager.savePreferences()
                     }
-                
+
                 if notificationManager.preferences.timerIntervalNotificationsEnabled {
                     HStack {
                         Text("Interval:")
@@ -166,14 +166,14 @@ struct TimerNotificationsSection: View {
 
 struct TrackingStatusSection: View {
     @ObservedObject var notificationManager: NotificationManager
-    
+
     var body: some View {
         Section("Tracking Status") {
             Toggle("Tracking Status Alerts", isOn: $notificationManager.preferences.trackingStatusNotificationsEnabled)
                 .onChange(of: notificationManager.preferences.trackingStatusNotificationsEnabled) { _, _ in
                     notificationManager.savePreferences()
                 }
-            
+
             if notificationManager.preferences.trackingStatusNotificationsEnabled {
                 Toggle("Play Sounds", isOn: $notificationManager.preferences.trackingStatusSoundsEnabled)
                     .onChange(of: notificationManager.preferences.trackingStatusSoundsEnabled) { _, _ in
@@ -188,20 +188,20 @@ struct TrackingStatusSection: View {
 
 struct ProductivityGoalsSection: View {
     @ObservedObject var notificationManager: NotificationManager
-    
+
     var body: some View {
         Section("Productivity Goals") {
             Toggle("Goal Achievement Notifications", isOn: $notificationManager.preferences.productivityGoalNotificationsEnabled)
                 .onChange(of: notificationManager.preferences.productivityGoalNotificationsEnabled) { _, _ in
                     notificationManager.savePreferences()
                 }
-            
+
             if notificationManager.preferences.productivityGoalNotificationsEnabled {
                 Toggle("Play Sounds", isOn: $notificationManager.preferences.productivityGoalSoundsEnabled)
                     .onChange(of: notificationManager.preferences.productivityGoalSoundsEnabled) { _, _ in
                         notificationManager.savePreferences()
                     }
-                
+
                 HStack {
                     Text("Daily Goal:")
                     Spacer()
@@ -213,7 +213,7 @@ struct ProductivityGoalsSection: View {
                         }
                     Text("hours")
                 }
-                
+
                 HStack {
                     Text("Weekly Goal:")
                     Spacer()
@@ -234,20 +234,20 @@ struct ProductivityGoalsSection: View {
 
 struct InactivityRemindersSection: View {
     @ObservedObject var notificationManager: NotificationManager
-    
+
     var body: some View {
         Section("Inactivity Reminders") {
             Toggle("Inactivity Reminders", isOn: $notificationManager.preferences.inactivityRemindersEnabled)
                 .onChange(of: notificationManager.preferences.inactivityRemindersEnabled) { _, _ in
                     notificationManager.savePreferences()
                 }
-            
+
             if notificationManager.preferences.inactivityRemindersEnabled {
                 Toggle("Play Sounds", isOn: $notificationManager.preferences.inactivityReminderSoundsEnabled)
                     .onChange(of: notificationManager.preferences.inactivityReminderSoundsEnabled) { _, _ in
                         notificationManager.savePreferences()
                     }
-                
+
                 HStack {
                     Text("Remind after:")
                     Spacer()
@@ -259,7 +259,7 @@ struct InactivityRemindersSection: View {
                         }
                     Text("hours")
                 }
-                
+
                 HStack {
                     Text("Snooze for:")
                     Spacer()
@@ -280,33 +280,33 @@ struct InactivityRemindersSection: View {
 
 struct SummaryNotificationsSection: View {
     @ObservedObject var notificationManager: NotificationManager
-    
+
     var body: some View {
         Section("Summary Notifications") {
             Toggle("Daily & Weekly Summaries", isOn: $notificationManager.preferences.summaryNotificationsEnabled)
                 .onChange(of: notificationManager.preferences.summaryNotificationsEnabled) { _, _ in
                     notificationManager.savePreferences()
                 }
-            
+
             if notificationManager.preferences.summaryNotificationsEnabled {
                 Toggle("Play Sounds", isOn: $notificationManager.preferences.summarySoundsEnabled)
                     .onChange(of: notificationManager.preferences.summarySoundsEnabled) { _, _ in
                         notificationManager.savePreferences()
                     }
-                
+
                 HStack {
                     Text("Daily Summary Time:")
                     Spacer()
                     DatePicker("", selection: Binding(
                         get: { notificationManager.preferences.dailySummaryTime ?? Date() },
-                        set: { 
+                        set: {
                             notificationManager.preferences.dailySummaryTime = $0
                             notificationManager.savePreferences()
                         }
                     ), displayedComponents: .hourAndMinute)
-                    .labelsHidden()
+                        .labelsHidden()
                 }
-                
+
                 HStack {
                     Text("Weekly Summary Day:")
                     Spacer()
@@ -324,18 +324,18 @@ struct SummaryNotificationsSection: View {
                         notificationManager.savePreferences()
                     }
                 }
-                
+
                 HStack {
                     Text("Weekly Summary Time:")
                     Spacer()
                     DatePicker("", selection: Binding(
                         get: { notificationManager.preferences.weeklySummaryTime ?? Date() },
-                        set: { 
+                        set: {
                             notificationManager.preferences.weeklySummaryTime = $0
                             notificationManager.savePreferences()
                         }
                     ), displayedComponents: .hourAndMinute)
-                    .labelsHidden()
+                        .labelsHidden()
                 }
             }
         }

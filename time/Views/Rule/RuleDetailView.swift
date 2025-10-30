@@ -1,31 +1,31 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct RuleDetailView: View {
     let rule: Rule
     let ruleManager: RuleManager
     let ruleEngine: RuleEngine
-    
+
     @State private var showingEditSheet = false
     @State private var showingTestResults = false
     @State private var testResults: RuleTestResult?
     @State private var isTestingRule = false
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Header
                 RuleHeaderView(rule: rule, ruleManager: ruleManager)
-                
+
                 // Conditions Section
                 RuleConditionsSection(rule: rule)
-                
+
                 // Action Section
                 RuleActionSection(rule: rule)
-                
+
                 // Statistics Section
                 RuleStatisticsSection(rule: rule)
-                
+
                 // Test Section
                 RuleTestSection(
                     rule: rule,
@@ -61,7 +61,7 @@ struct RuleDetailView: View {
 struct RuleHeaderView: View {
     let rule: Rule
     let ruleManager: RuleManager
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -69,14 +69,14 @@ struct RuleHeaderView: View {
                     Text(rule.name)
                         .font(.title2)
                         .fontWeight(.semibold)
-                    
+
                     Text("Created \(rule.createdAt, style: .date)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 8) {
                     Toggle("Enabled", isOn: Binding(
                         get: { rule.isEnabled },
@@ -85,7 +85,7 @@ struct RuleHeaderView: View {
                         }
                     ))
                     .toggleStyle(.switch)
-                    
+
                     if rule.priority > 0 {
                         HStack {
                             Text("Priority:")
@@ -98,7 +98,7 @@ struct RuleHeaderView: View {
                     }
                 }
             }
-            
+
             if let lastApplied = rule.lastAppliedAt {
                 Text("Last applied: \(lastApplied, style: .relative)")
                     .font(.caption)
@@ -115,12 +115,12 @@ struct RuleHeaderView: View {
 
 struct RuleConditionsSection: View {
     let rule: Rule
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Conditions")
                 .font(.headline)
-            
+
             if rule.conditions.isEmpty {
                 Text("No conditions defined")
                     .foregroundColor(.secondary)
@@ -139,13 +139,13 @@ struct RuleConditionsSection: View {
                                     .background(Color.secondary.opacity(0.1))
                                     .cornerRadius(4)
                             }
-                            
+
                             Text(condition.displayName)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
                                 .background(Color.blue.opacity(0.1))
                                 .cornerRadius(6)
-                            
+
                             Spacer()
                         }
                     }
@@ -162,12 +162,12 @@ struct RuleConditionsSection: View {
 
 struct RuleActionSection: View {
     let rule: Rule
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Action")
                 .font(.headline)
-            
+
             if let action = rule.action {
                 HStack {
                     Text(action.displayName)
@@ -175,7 +175,7 @@ struct RuleActionSection: View {
                         .padding(.vertical, 8)
                         .background(Color.green.opacity(0.1))
                         .cornerRadius(6)
-                    
+
                     Spacer()
                 }
             } else {
@@ -194,12 +194,12 @@ struct RuleActionSection: View {
 
 struct RuleStatisticsSection: View {
     let rule: Rule
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Statistics")
                 .font(.headline)
-            
+
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Applications")
@@ -209,9 +209,9 @@ struct RuleStatisticsSection: View {
                         .font(.title3)
                         .fontWeight(.semibold)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("Priority")
                         .font(.caption)
@@ -236,52 +236,52 @@ struct RuleTestSection: View {
     @Binding var isTestingRule: Bool
     @Binding var testResults: RuleTestResult?
     @Binding var showingTestResults: Bool
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Test Rule")
                 .font(.headline)
-            
+
             Text("Test this rule against recent activities to see how it would perform.")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             HStack {
                 Button("Test Against Last 7 Days") {
                     testRule(daysBack: 7)
                 }
                 .disabled(isTestingRule)
-                
+
                 Button("Test Against Last 30 Days") {
                     testRule(daysBack: 30)
                 }
                 .disabled(isTestingRule)
-                
+
                 Spacer()
-                
+
                 if isTestingRule {
                     ProgressView()
                         .scaleEffect(0.8)
                 }
             }
-            
+
             if let results = testResults {
                 VStack(alignment: .leading, spacing: 8) {
                     Divider()
-                    
+
                     HStack {
                         Text("Last Test Results:")
                             .font(.caption)
                             .fontWeight(.medium)
-                        
+
                         Spacer()
-                        
+
                         Button("View Details") {
                             showingTestResults = true
                         }
                         .font(.caption)
                     }
-                    
+
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Matches")
@@ -291,9 +291,9 @@ struct RuleTestSection: View {
                                 .font(.caption)
                                 .fontWeight(.medium)
                         }
-                        
+
                         Spacer()
-                        
+
                         VStack(alignment: .center, spacing: 2) {
                             Text("Match Rate")
                                 .font(.caption2)
@@ -302,9 +302,9 @@ struct RuleTestSection: View {
                                 .font(.caption)
                                 .fontWeight(.medium)
                         }
-                        
+
                         Spacer()
-                        
+
                         VStack(alignment: .trailing, spacing: 2) {
                             Text("Total Time")
                                 .font(.caption2)
@@ -321,10 +321,10 @@ struct RuleTestSection: View {
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(8)
     }
-    
+
     private func testRule(daysBack: Int) {
         isTestingRule = true
-        
+
         Task {
             do {
                 let results = try ruleEngine.previewRuleApplication(rule, daysBack: daysBack)
@@ -339,11 +339,11 @@ struct RuleTestSection: View {
             }
         }
     }
-    
+
     private func formatDuration(_ duration: TimeInterval) -> String {
         let hours = Int(duration) / 3600
         let minutes = (Int(duration) % 3600) / 60
-        
+
         if hours > 0 {
             return "\(hours)h \(minutes)m"
         } else {
@@ -357,11 +357,11 @@ struct RuleTestSection: View {
         name: "Sample Rule",
         conditions: [
             .appName("Xcode", .contains),
-            .timeRange(start: Date(), end: Date())
+            .timeRange(start: Date(), end: Date()),
         ],
         action: .assignToProject("project-id")
     )
-    
+
     return RuleDetailView(
         rule: rule,
         ruleManager: RuleManager(modelContext: ModelContext(try! ModelContainer(for: Rule.self))),

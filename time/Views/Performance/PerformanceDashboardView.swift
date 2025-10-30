@@ -1,41 +1,41 @@
-import SwiftUI
 import Charts
+import SwiftUI
 
 /// Performance monitoring dashboard view
 struct PerformanceDashboardView: View {
     @StateObject private var performanceMonitor = PerformanceMonitor.shared
     @StateObject private var memoryManager = MemoryManager.shared
     @StateObject private var databaseOptimizer = DatabasePerformanceOptimizer.shared
-    
+
     @State private var selectedTimeRange: TimeRange = .last5Minutes
     @State private var showingAlerts = false
     @State private var isPerformingMaintenance = false
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 20) {
                     // Performance Score Card
                     performanceScoreCard
-                    
+
                     // System Metrics
                     systemMetricsSection
-                    
+
                     // Application Metrics
                     applicationMetricsSection
-                    
+
                     // Memory Management
                     memoryManagementSection
-                    
+
                     // Database Performance
                     databasePerformanceSection
-                    
+
                     // Performance Alerts
                     performanceAlertsSection
-                    
+
                     // Performance History Charts
                     performanceChartsSection
-                    
+
                     // Maintenance Actions
                     maintenanceActionsSection
                 }
@@ -48,7 +48,7 @@ struct PerformanceDashboardView: View {
                         showingAlerts = true
                     }
                     .badge(performanceMonitor.performanceAlerts.count)
-                    
+
                     Menu("Time Range") {
                         ForEach(TimeRange.allCases, id: \.self) { range in
                             Button(range.displayName) {
@@ -63,12 +63,12 @@ struct PerformanceDashboardView: View {
             }
         }
     }
-    
+
     // MARK: - Performance Score Card
-    
+
     private var performanceScoreCard: some View {
         let summary = performanceMonitor.getCurrentPerformanceSummary()
-        
+
         return VStack(spacing: 12) {
             HStack {
                 Text("Performance Score")
@@ -78,10 +78,10 @@ struct PerformanceDashboardView: View {
                     .font(.largeTitle.bold())
                     .foregroundColor(scoreColor(summary.performanceScore))
             }
-            
+
             ProgressView(value: summary.performanceScore, total: 100)
                 .progressViewStyle(LinearProgressViewStyle(tint: scoreColor(summary.performanceScore)))
-            
+
             HStack {
                 performanceIndicator("CPU", value: summary.currentSystemMetrics.cpuUsage, unit: "%", threshold: 80)
                 Spacer()
@@ -95,37 +95,37 @@ struct PerformanceDashboardView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     private func performanceIndicator(_ title: String, value: Double, unit: String, threshold: Double) -> some View {
         VStack(spacing: 4) {
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             Text("\(String(format: "%.1f", value))\(unit)")
                 .font(.system(.body, design: .monospaced))
                 .foregroundColor(value > threshold ? .red : .primary)
         }
     }
-    
+
     private func scoreColor(_ score: Double) -> Color {
         switch score {
-        case 80...100:
+        case 80 ... 100:
             return .green
-        case 60..<80:
+        case 60 ..< 80:
             return .orange
         default:
             return .red
         }
     }
-    
+
     // MARK: - System Metrics Section
-    
+
     private var systemMetricsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("System Metrics")
                 .font(.headline)
-            
+
             HStack(spacing: 20) {
                 metricCard("CPU Usage", value: performanceMonitor.systemMetrics.cpuUsage, unit: "%", color: .blue)
                 metricCard("Memory Usage", value: performanceMonitor.systemMetrics.memoryUsage, unit: "%", color: .orange)
@@ -137,20 +137,20 @@ struct PerformanceDashboardView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     // MARK: - Application Metrics Section
-    
+
     private var applicationMetricsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Application Metrics")
                 .font(.headline)
-            
+
             HStack(spacing: 20) {
                 metricCard("Response Time", value: performanceMonitor.applicationMetrics.averageResponseTime * 1000, unit: "ms", color: .green)
                 metricCard("Error Rate", value: performanceMonitor.applicationMetrics.errorRate, unit: "%", color: .red)
                 metricCard("Throughput", value: performanceMonitor.applicationMetrics.throughput, unit: "ops/s", color: .cyan)
             }
-            
+
             HStack(spacing: 20) {
                 Text("Active Operations: \(performanceMonitor.applicationMetrics.activeOperations)")
                     .font(.caption)
@@ -165,26 +165,26 @@ struct PerformanceDashboardView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     // MARK: - Memory Management Section
-    
+
     private var memoryManagementSection: some View {
         let memoryMetrics = memoryManager.getMemoryPerformanceMetrics()
-        
+
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Memory Management")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 if memoryManager.isMemoryPressureHigh {
                     Label("High Pressure", systemImage: "exclamationmark.triangle.fill")
                         .foregroundColor(.red)
                         .font(.caption)
                 }
             }
-            
+
             HStack(spacing: 20) {
                 VStack(alignment: .leading) {
                     Text("Used Memory")
@@ -193,9 +193,9 @@ struct PerformanceDashboardView: View {
                     Text(ByteCountFormatter.string(fromByteCount: Int64(memoryMetrics.currentMemoryUsage), countStyle: .memory))
                         .font(.system(.body, design: .monospaced))
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .leading) {
                     Text("Cache Size")
                         .font(.caption)
@@ -203,9 +203,9 @@ struct PerformanceDashboardView: View {
                     Text(ByteCountFormatter.string(fromByteCount: Int64(memoryMetrics.cacheSize), countStyle: .memory))
                         .font(.system(.body, design: .monospaced))
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .leading) {
                     Text("Efficiency")
                         .font(.caption)
@@ -215,15 +215,15 @@ struct PerformanceDashboardView: View {
                         .foregroundColor(memoryMetrics.memoryEfficiency > 0.7 ? .green : .orange)
                 }
             }
-            
+
             HStack {
                 Button("Clear Caches") {
                     memoryManager.clearAllCaches()
                 }
                 .buttonStyle(.bordered)
-                
+
                 Spacer()
-                
+
                 Text("Cache Entries: \(memoryMetrics.cacheEntryCount)")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -234,17 +234,17 @@ struct PerformanceDashboardView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     // MARK: - Database Performance Section
-    
+
     private var databasePerformanceSection: some View {
         let dbMetrics = databaseOptimizer.getPerformanceMetrics()
         let queryStats = databaseOptimizer.getQueryPerformanceStats()
-        
+
         return VStack(alignment: .leading, spacing: 12) {
             Text("Database Performance")
                 .font(.headline)
-            
+
             HStack(spacing: 20) {
                 VStack(alignment: .leading) {
                     Text("Avg Query Time")
@@ -253,9 +253,9 @@ struct PerformanceDashboardView: View {
                     Text("\(String(format: "%.3f", queryStats.averageDuration))s")
                         .font(.system(.body, design: .monospaced))
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .leading) {
                     Text("Total Queries")
                         .font(.caption)
@@ -263,9 +263,9 @@ struct PerformanceDashboardView: View {
                     Text("\(queryStats.totalQueries)")
                         .font(.system(.body, design: .monospaced))
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .leading) {
                     Text("Slowest Query")
                         .font(.caption)
@@ -275,7 +275,7 @@ struct PerformanceDashboardView: View {
                         .foregroundColor(queryStats.slowestDuration > 1.0 ? .red : .primary)
                 }
             }
-            
+
             if let lastMaintenance = dbMetrics.lastMaintenanceTime {
                 HStack {
                     Text("Last Maintenance:")
@@ -292,19 +292,19 @@ struct PerformanceDashboardView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     // MARK: - Performance Alerts Section
-    
+
     private var performanceAlertsSection: some View {
         let recentAlerts = performanceMonitor.performanceAlerts.prefix(3)
-        
+
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Recent Alerts")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 if !performanceMonitor.performanceAlerts.isEmpty {
                     Button("View All") {
                         showingAlerts = true
@@ -312,7 +312,7 @@ struct PerformanceDashboardView: View {
                     .font(.caption)
                 }
             }
-            
+
             if recentAlerts.isEmpty {
                 Text("No recent performance alerts")
                     .font(.caption)
@@ -330,27 +330,27 @@ struct PerformanceDashboardView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     private func alertRow(_ alert: PerformanceAlert) -> some View {
         HStack {
             Image(systemName: alertIcon(alert.severity))
                 .foregroundColor(alertColor(alert.severity))
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(alert.message)
                     .font(.caption)
                     .lineLimit(2)
-                
+
                 Text(alert.timestamp, style: .relative)
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
         }
         .padding(.vertical, 4)
     }
-    
+
     private func alertIcon(_ severity: AlertSeverity) -> String {
         switch severity {
         case .info:
@@ -361,7 +361,7 @@ struct PerformanceDashboardView: View {
             return "exclamationmark.octagon"
         }
     }
-    
+
     private func alertColor(_ severity: AlertSeverity) -> Color {
         switch severity {
         case .info:
@@ -372,14 +372,14 @@ struct PerformanceDashboardView: View {
             return .red
         }
     }
-    
+
     // MARK: - Performance Charts Section
-    
+
     private var performanceChartsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Performance Trends")
                 .font(.headline)
-            
+
             // This would contain actual charts in a real implementation
             Text("Performance charts would be displayed here")
                 .font(.caption)
@@ -392,14 +392,14 @@ struct PerformanceDashboardView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     // MARK: - Maintenance Actions Section
-    
+
     private var maintenanceActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Maintenance Actions")
                 .font(.headline)
-            
+
             HStack(spacing: 12) {
                 Button("Optimize Database") {
                     Task {
@@ -410,19 +410,19 @@ struct PerformanceDashboardView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(isPerformingMaintenance)
-                
+
                 Button("Clear Memory Caches") {
                     memoryManager.clearAllCaches()
                 }
                 .buttonStyle(.bordered)
-                
+
                 Button("Force Cleanup") {
                     // Trigger emergency cleanup
                     NotificationCenter.default.post(name: .emergencyMemoryCleanup, object: nil)
                 }
                 .buttonStyle(.bordered)
             }
-            
+
             if isPerformingMaintenance {
                 HStack {
                     ProgressView()
@@ -438,15 +438,15 @@ struct PerformanceDashboardView: View {
         .cornerRadius(12)
         .shadow(radius: 2)
     }
-    
+
     // MARK: - Helper Views
-    
+
     private func metricCard(_ title: String, value: Double, unit: String, color: Color) -> some View {
         VStack(spacing: 4) {
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             Text("\(String(format: "%.1f", value))\(unit)")
                 .font(.system(.body, design: .monospaced))
                 .foregroundColor(color)
@@ -460,7 +460,7 @@ struct PerformanceDashboardView: View {
 struct PerformanceAlertsView: View {
     let alerts: [PerformanceAlert]
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             List(alerts, id: \.id) { alert in
@@ -468,20 +468,20 @@ struct PerformanceAlertsView: View {
                     HStack {
                         Image(systemName: alertIcon(alert.severity))
                             .foregroundColor(alertColor(alert.severity))
-                        
+
                         Text(alertTypeDisplayName(alert.type))
                             .font(.headline)
-                        
+
                         Spacer()
-                        
+
                         Text(alert.timestamp, style: .time)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Text(alert.message)
                         .font(.body)
-                    
+
                     Text(alert.timestamp, style: .relative)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -499,7 +499,7 @@ struct PerformanceAlertsView: View {
             }
         }
     }
-    
+
     private func alertIcon(_ severity: AlertSeverity) -> String {
         switch severity {
         case .info:
@@ -510,7 +510,7 @@ struct PerformanceAlertsView: View {
             return "exclamationmark.octagon"
         }
     }
-    
+
     private func alertColor(_ severity: AlertSeverity) -> Color {
         switch severity {
         case .info:
@@ -521,7 +521,7 @@ struct PerformanceAlertsView: View {
             return .red
         }
     }
-    
+
     private func alertTypeDisplayName(_ type: PerformanceAlertType) -> String {
         switch type {
         case .highCPUUsage:
@@ -548,7 +548,7 @@ enum TimeRange: CaseIterable {
     case last1Hour
     case last6Hours
     case last24Hours
-    
+
     var displayName: String {
         switch self {
         case .last5Minutes:
@@ -563,7 +563,7 @@ enum TimeRange: CaseIterable {
             return "Last 24 Hours"
         }
     }
-    
+
     var timeInterval: TimeInterval {
         switch self {
         case .last5Minutes:

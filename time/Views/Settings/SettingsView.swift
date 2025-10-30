@@ -3,13 +3,13 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedTab: SettingsTab = .notifications
-    
+
     enum SettingsTab: String, CaseIterable {
         case notifications = "Notifications"
         case productivity = "Productivity"
         case tracking = "Tracking"
         case general = "General"
-        
+
         var icon: String {
             switch self {
             case .notifications:
@@ -23,7 +23,7 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     var body: some View {
         NavigationSplitView {
             // Sidebar
@@ -58,11 +58,11 @@ struct SettingsView: View {
 struct NotificationSettingsDetailView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedSubTab: NotificationSubTab = .preferences
-    
+
     enum NotificationSubTab: String, CaseIterable {
         case preferences = "Preferences"
         case history = "History"
-        
+
         var icon: String {
             switch self {
             case .preferences:
@@ -72,7 +72,7 @@ struct NotificationSettingsDetailView: View {
             }
         }
     }
-    
+
     var body: some View {
         VStack {
             // Sub-navigation
@@ -84,7 +84,7 @@ struct NotificationSettingsDetailView: View {
             }
             .pickerStyle(.segmented)
             .padding()
-            
+
             // Content
             switch selectedSubTab {
             case .preferences:
@@ -101,7 +101,7 @@ struct NotificationSettingsDetailView: View {
 
 struct ProductivitySettingsDetailView: View {
     @EnvironmentObject var appState: AppState
-    
+
     var body: some View {
         Form {
             Section("Daily Goals") {
@@ -113,7 +113,7 @@ struct ProductivitySettingsDetailView: View {
                         .frame(width: 100)
                     Text("hours")
                 }
-                
+
                 HStack {
                     Text("Current Progress:")
                     Spacer()
@@ -122,7 +122,7 @@ struct ProductivitySettingsDetailView: View {
                     Text("\(Int(appState.productivityGoalTracker.dailyProgress * 100))%")
                         .frame(width: 40, alignment: .trailing)
                 }
-                
+
                 if appState.productivityGoalTracker.dailyGoalReached {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
@@ -132,7 +132,7 @@ struct ProductivitySettingsDetailView: View {
                     }
                 }
             }
-            
+
             Section("Weekly Goals") {
                 HStack {
                     Text("Weekly Goal:")
@@ -142,7 +142,7 @@ struct ProductivitySettingsDetailView: View {
                         .frame(width: 100)
                     Text("hours")
                 }
-                
+
                 HStack {
                     Text("Current Progress:")
                     Spacer()
@@ -151,7 +151,7 @@ struct ProductivitySettingsDetailView: View {
                     Text("\(Int(appState.productivityGoalTracker.weeklyProgress * 100))%")
                         .frame(width: 40, alignment: .trailing)
                 }
-                
+
                 if appState.productivityGoalTracker.weeklyGoalReached {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
@@ -161,16 +161,16 @@ struct ProductivitySettingsDetailView: View {
                     }
                 }
             }
-            
+
             Section("Actions") {
                 Button("Update Progress Now") {
                     appState.productivityGoalTracker.updateProgress()
                 }
-                
+
                 Button("Schedule Daily Summary") {
                     appState.productivityGoalTracker.scheduleDailySummary()
                 }
-                
+
                 Button("Schedule Weekly Summary") {
                     appState.productivityGoalTracker.scheduleWeeklySummary()
                 }
@@ -186,7 +186,7 @@ struct ProductivitySettingsDetailView: View {
 struct TrackingSettingsDetailView: View {
     @EnvironmentObject var appState: AppState
     @State private var trackingStatus = ActivityTracker.shared.getTrackingStatus()
-    
+
     var body: some View {
         Form {
             Section("Tracking Status") {
@@ -196,20 +196,20 @@ struct TrackingSettingsDetailView: View {
                     Text(trackingStatus.statusDescription)
                         .foregroundColor(trackingStatus.isHealthy ? .green : .red)
                 }
-                
+
                 HStack {
                     Text("Current App:")
                     Spacer()
                     Text(trackingStatus.currentApplication ?? "None")
                         .foregroundColor(.secondary)
                 }
-                
+
                 HStack {
                     Text("Observers:")
                     Spacer()
                     Text("\(trackingStatus.observerCount)")
                 }
-                
+
                 HStack {
                     Text("Idle Status:")
                     Spacer()
@@ -217,30 +217,30 @@ struct TrackingSettingsDetailView: View {
                         .foregroundColor(trackingStatus.isIdlePaused ? .orange : .green)
                 }
             }
-            
+
             Section("Configuration") {
                 Toggle("Enable Tracking", isOn: .constant(trackingStatus.isTrackingEnabled))
                     .disabled(true) // Read-only for now
-                
+
                 Toggle("Track Window Titles", isOn: .constant(trackingStatus.trackWindowTitles))
                     .disabled(true) // Read-only for now
-                
+
                 Toggle("Capture Browser Data", isOn: .constant(trackingStatus.captureBrowserData))
                     .disabled(true) // Read-only for now
-                
+
                 HStack {
                     Text("Minimum Duration:")
                     Spacer()
                     Text("\(trackingStatus.minimumActivityDuration, specifier: "%.1f")s")
                 }
             }
-            
+
             Section("Context Capture") {
                 Text(trackingStatus.contextCaptureStatus)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Section("Actions") {
                 Button("Refresh Status") {
                     trackingStatus = ActivityTracker.shared.getTrackingStatus()
@@ -259,7 +259,7 @@ struct TrackingSettingsDetailView: View {
 
 struct GeneralSettingsDetailView: View {
     @EnvironmentObject var appState: AppState
-    
+
     var body: some View {
         Form {
             Section("Timer Settings") {
@@ -270,20 +270,20 @@ struct GeneralSettingsDetailView: View {
                         get: { appState.timerManager.defaultEstimatedDuration / 60 },
                         set: { appState.timerManager.defaultEstimatedDuration = $0 * 60 }
                     ), format: .number)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 100)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 100)
                     Text("minutes")
                 }
-                
+
                 Toggle("Enable Notifications", isOn: $appState.timerManager.enableNotifications)
                 Toggle("Enable Sounds", isOn: $appState.timerManager.enableSounds)
                 Toggle("Auto-create Time Entries", isOn: $appState.timerManager.autoCreateTimeEntry)
             }
-            
+
             Section("Time Entry Settings") {
                 Toggle("Automatic Time Entry Creation", isOn: $appState.automaticTimeEntryCreation)
             }
-            
+
             Section("Application") {
                 HStack {
                     Text("Version:")
@@ -291,7 +291,7 @@ struct GeneralSettingsDetailView: View {
                     Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
                         .foregroundColor(.secondary)
                 }
-                
+
                 HStack {
                     Text("Build:")
                     Spacer()

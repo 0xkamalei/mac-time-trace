@@ -1,16 +1,16 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 /// Main search interface that combines search bar, filters, and results
 struct SearchView: View {
     @StateObject private var searchManager: SearchManager
     @State private var isSearchExpanded = false
     @Environment(\.modelContext) private var modelContext
-    
+
     init(modelContext: ModelContext) {
-        self._searchManager = StateObject(wrappedValue: SearchManager(modelContext: modelContext))
+        _searchManager = StateObject(wrappedValue: SearchManager(modelContext: modelContext))
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             // Search bar
@@ -18,12 +18,12 @@ struct SearchView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 8)
-            
+
             // Active filters summary
             if searchManager.activeFilters.hasActiveFilters {
                 activeFiltersBar
             }
-            
+
             // Search results
             SearchResultsView(searchManager: searchManager)
         }
@@ -32,13 +32,14 @@ struct SearchView: View {
             searchManager.rebuildSearchIndex()
         }
     }
-    
+
     private var activeFiltersBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 // Date range filter
                 if let startDate = searchManager.activeFilters.startDate,
-                   let endDate = searchManager.activeFilters.endDate {
+                   let endDate = searchManager.activeFilters.endDate
+                {
                     filterChip(
                         title: "Date: \(formatDateRange(startDate, endDate))",
                         icon: "calendar"
@@ -49,7 +50,7 @@ struct SearchView: View {
                         searchManager.applyFilters(filters)
                     }
                 }
-                
+
                 // Project filters
                 if !searchManager.activeFilters.selectedProjects.isEmpty {
                     filterChip(
@@ -61,7 +62,7 @@ struct SearchView: View {
                         searchManager.applyFilters(filters)
                     }
                 }
-                
+
                 // App filters
                 if !searchManager.activeFilters.selectedApps.isEmpty {
                     filterChip(
@@ -73,7 +74,7 @@ struct SearchView: View {
                         searchManager.applyFilters(filters)
                     }
                 }
-                
+
                 // Duration filter
                 if let minDuration = searchManager.activeFilters.minDuration {
                     let minutes = Int(minDuration / 60)
@@ -86,7 +87,7 @@ struct SearchView: View {
                         searchManager.applyFilters(filters)
                     }
                 }
-                
+
                 // Idle time filter
                 if searchManager.activeFilters.excludeIdleTime {
                     filterChip(
@@ -98,7 +99,7 @@ struct SearchView: View {
                         searchManager.applyFilters(filters)
                     }
                 }
-                
+
                 // Clear all button
                 Button("Clear All") {
                     searchManager.clearFilters()
@@ -116,15 +117,15 @@ struct SearchView: View {
         .padding(.vertical, 8)
         .background(Color(NSColor.controlBackgroundColor))
     }
-    
+
     private func filterChip(title: String, icon: String, onRemove: @escaping () -> Void) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(.system(size: 10))
-            
+
             Text(title)
                 .font(.caption)
-            
+
             Button(action: onRemove) {
                 Image(systemName: "xmark")
                     .font(.system(size: 8))
@@ -137,11 +138,11 @@ struct SearchView: View {
         .foregroundColor(.accentColor)
         .cornerRadius(12)
     }
-    
+
     private func formatDateRange(_ startDate: Date, _ endDate: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
-        
+
         if Calendar.current.isDate(startDate, inSameDayAs: endDate) {
             return formatter.string(from: startDate)
         } else {
@@ -155,13 +156,13 @@ struct CompactSearchBarView: View {
     @ObservedObject var searchManager: SearchManager
     @State private var showingFullSearch = false
     @FocusState private var isSearchFocused: Bool
-    
+
     var body: some View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.secondary)
                 .font(.system(size: 14))
-            
+
             TextField("Search...", text: $searchManager.searchQuery)
                 .textFieldStyle(.plain)
                 .focused($isSearchFocused)
@@ -175,7 +176,7 @@ struct CompactSearchBarView: View {
                         searchManager.search()
                     }
                 }
-            
+
             if !searchManager.searchQuery.isEmpty {
                 Button(action: {
                     searchManager.clearSearch()
@@ -186,7 +187,7 @@ struct CompactSearchBarView: View {
                 }
                 .buttonStyle(.plain)
             }
-            
+
             if searchManager.activeFilters.hasActiveFilters {
                 Circle()
                     .fill(.blue)
@@ -223,21 +224,21 @@ struct CompactSearchBarView: View {
 struct IntegratedSearchView: View {
     @ObservedObject var searchManager: SearchManager
     let onResultSelected: ((any SearchResultItem) -> Void)?
-    
+
     init(searchManager: SearchManager, onResultSelected: ((any SearchResultItem) -> Void)? = nil) {
         self.searchManager = searchManager
         self.onResultSelected = onResultSelected
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             SearchBarView(searchManager: searchManager)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-            
+
             if searchManager.searchResults.hasResults || searchManager.isSearching {
                 Divider()
-                
+
                 SearchResultsView(searchManager: searchManager)
             }
         }
@@ -281,7 +282,7 @@ extension Project: SearchResultItem {
 
 #Preview {
     let container = try! ModelContainer(for: Activity.self, TimeEntry.self, Project.self)
-    
+
     return SearchView(modelContext: container.mainContext)
         .frame(width: 800, height: 600)
 }

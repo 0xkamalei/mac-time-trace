@@ -1,7 +1,7 @@
 
-import SwiftUI
-import SwiftData
 import AppKit
+import SwiftData
+import SwiftUI
 
 struct MainToolbarView: ToolbarContent {
     @EnvironmentObject private var appState: AppState
@@ -12,9 +12,9 @@ struct MainToolbarView: ToolbarContent {
     @Binding var selectedDateRange: AppDateRange
     @Binding var selectedPreset: AppDateRangePreset?
     @Binding var searchText: String
-    
+
     @StateObject private var searchManager: SearchManager
-    
+
     init(
         isAddingProject: Binding<Bool>,
         isStartingTimer: Binding<Bool>,
@@ -24,13 +24,13 @@ struct MainToolbarView: ToolbarContent {
         searchText: Binding<String>,
         modelContext: ModelContext
     ) {
-        self._isAddingProject = isAddingProject
-        self._isStartingTimer = isStartingTimer
-        self._isAddingTimeEntry = isAddingTimeEntry
-        self._selectedDateRange = selectedDateRange
-        self._selectedPreset = selectedPreset
-        self._searchText = searchText
-        self._searchManager = StateObject(wrappedValue: SearchManager(modelContext: modelContext))
+        _isAddingProject = isAddingProject
+        _isStartingTimer = isStartingTimer
+        _isAddingTimeEntry = isAddingTimeEntry
+        _selectedDateRange = selectedDateRange
+        _selectedPreset = selectedPreset
+        _searchText = searchText
+        _searchManager = StateObject(wrappedValue: SearchManager(modelContext: modelContext))
     }
 
     private func openSettingsWindow() {
@@ -40,9 +40,9 @@ struct MainToolbarView: ToolbarContent {
             backing: .buffered,
             defer: false
         )
-        
+
         settingsWindow.title = "Settings"
-        settingsWindow.contentView = NSHostingView(rootView: 
+        settingsWindow.contentView = NSHostingView(rootView:
             SettingsView()
                 .environmentObject(appState)
         )
@@ -135,7 +135,7 @@ struct MainToolbarView: ToolbarContent {
                 .frame(width: 180)
                 .accessibilityIdentifier("toolbar.searchField")
         }
-        
+
         ToolbarItem(placement: .primaryAction) {
             Button(action: {
                 openSettingsWindow()

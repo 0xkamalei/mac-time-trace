@@ -8,17 +8,17 @@ class BatchRuleOperations: ObservableObject {
     @Published var progress: Double = 0.0
     @Published var statusMessage = ""
     @Published var operationHistory: [RuleOperation] = []
-    
+
     private let modelContext: ModelContext
     private let ruleEngine: RuleEngine
-    
+
     init(modelContext: ModelContext, ruleEngine: RuleEngine) {
         self.modelContext = modelContext
         self.ruleEngine = ruleEngine
     }
-    
+
     // MARK: - Batch Operations
-    
+
     /// Apply rules to a batch of activities with detailed tracking
     func applyRulesToBatch(
         activities: [Activity],
@@ -28,16 +28,16 @@ class BatchRuleOperations: ObservableObject {
         isProcessing = true
         progress = 0.0
         statusMessage = "Preparing batch operation..."
-        
+
         defer {
             isProcessing = false
             progress = 0.0
             statusMessage = ""
         }
-        
+
         var undoData: [ActivityUndoData] = []
         var appliedRules: [UUID: Int] = [:] // Rule ID to application count
-        
+
         if createUndoPoint {
             // Create undo data for all activities
             undoData = activities.map { activity in
@@ -47,23 +47,23 @@ class BatchRuleOperations: ObservableObject {
                 )
             }
         }
-        
+
         let totalActivities = activities.count
         var processedCount = 0
-        
+
         for activity in activities {
             do {
                 if let matchingRule = ruleEngine.evaluateRules(for: activity) {
                     try await applyRuleToActivity(matchingRule, activity: activity, projectManager: projectManager)
-                    
+
                     // Track rule applications
                     appliedRules[matchingRule.id, default: 0] += 1
                 }
-                
+
                 processedCount += 1
                 progress = Double(processedCount) / Double(totalActivities)
                 statusMessage = "Processed \(processedCount) of \(totalActivities) activities"
-                
+
                 // Yield control periodically
                 if processedCount % 10 == 0 {
                     try await Task.sleep(nanoseconds: 1_000_000) // 1ms
@@ -72,7 +72,7 @@ class BatchRuleOperations: ObservableObject {
                 throw BatchOperationError.activityProcessingFailed(activity.id, error)
             }
         }
-        
+
         // Record the operation for undo
         if createUndoPoint {
             let operation = RuleOperation(
@@ -83,16 +83,16 @@ class BatchRuleOperations: ObservableObject {
                 description: "Applied rules to \(totalActivities) activities"
             )
             operationHistory.append(operation)
-            
+
             // Keep only the last 10 operations
             if operationHistory.count > 10 {
                 operationHistory.removeFirst(operationHistory.count - 10)
             }
         }
-        
+
         statusMessage = "Completed processing \(totalActivities) activities"
     }
-    
+
     /// Apply a specific rule retroactively with undo support
     func applyRuleRetroactively(
         rule: Rule,
@@ -104,29 +104,29 @@ class BatchRuleOperations: ObservableObject {
         isProcessing = true
         progress = 0.0
         statusMessage = "Loading activities..."
-        
+
         defer {
             isProcessing = false
             progress = 0.0
             statusMessage = ""
         }
-        
+
         // Fetch activities matching criteria
         let activities = try fetchActivities(
             from: startDate,
             to: endDate,
             appNames: appNames
         )
-        
+
         statusMessage = "Found \(activities.count) activities to process"
-        
+
         // Filter activities that would match this rule
         let matchingActivities = activities.filter { activity in
             ruleEngine.evaluateRules(for: activity)?.id == rule.id
         }
-        
+
         statusMessage = "Applying rule to \(matchingActivities.count) matching activities"
-        
+
         // Apply the rule to matching activities
         try await applyRulesToBatch(
             activities: matchingActivities,
@@ -134,19 +134,19 @@ class BatchRuleOperations: ObservableObject {
             createUndoPoint: true
         )
     }
-    
+
     // MARK: - Undo Operations
-    
+
     /// Undo the last batch operation
     func undoLastOperation() throws {
         guard let lastOperation = operationHistory.last else {
             throw BatchOperationError.noOperationToUndo
         }
-        
+
         try undoOperation(lastOperation)
         operationHistory.removeLast()
     }
-    
+
     /// Undo a specific operation
     func undoOperation(_ operation: RuleOperation) throws {
         for undoData in operation.affectedActivities {
@@ -167,14 +167,14 @@ class BatchRuleOperations: ObservableObject {
 
         try modelContext.save()
     }
-    
+
     /// Clear all operation history
     func clearOperationHistory() {
         operationHistory.removeAll()
     }
-    
+
     // MARK: - Progress Tracking and Reporting
-    
+
     /// Get detailed progress information
     func getProgressInfo() -> BatchProgressInfo {
         return BatchProgressInfo(
@@ -184,7 +184,7 @@ class BatchRuleOperations: ObservableObject {
             canUndo: !operationHistory.isEmpty
         )
     }
-    
+
     /// Generate a report of the last operation
     func generateOperationReport(_ operation: RuleOperation) -> OperationReport {
         let affectedCount = operation.affectedActivities.count
@@ -202,9 +202,9 @@ class BatchRuleOperations: ObservableObject {
             topRules: Array(topRules)
         )
     }
-    
+
     // MARK: - Private Helper Methods
-    
+
     private func fetchActivities(
         from startDate: Date,
         to endDate: Date? = nil,
@@ -217,8 +217,8 @@ class BatchRuleOperations: ObservableObject {
             // All parameters provided
             predicate = #Predicate<Activity> { activity in
                 activity.startTime >= startDate &&
-                activity.startTime <= endDate &&
-                appNames.contains(activity.appName)
+                    activity.startTime <= endDate &&
+                    appNames.contains(activity.appName)
             }
         } else if let endDate = endDate {
             // Only endDate provided
@@ -244,18 +244,18 @@ class BatchRuleOperations: ObservableObject {
 
         return try modelContext.fetch(descriptor)
     }
-    
+
     private func applyRuleToActivity(
         _ rule: Rule,
         activity: Activity,
-        projectManager: ProjectManager
+        projectManager _: ProjectManager
     ) async throws {
         guard let action = rule.action else {
             throw BatchOperationError.ruleHasNoAction(rule.id)
         }
-        
+
         switch action {
-        case .assignToProject(let projectId):
+        case let .assignToProject(projectId):
             // This would need integration with ActivityManager
             // For now, store in context data
             var contextDict: [String: Any] = [:]
@@ -265,8 +265,8 @@ class BatchRuleOperations: ObservableObject {
             contextDict["assignedProjectId"] = projectId
             contextDict["assignedByRule"] = rule.id.uuidString
             activity.contextData = try JSONSerialization.data(withJSONObject: contextDict)
-            
-        case .setProductivityScore(let score):
+
+        case let .setProductivityScore(score):
             var contextDict: [String: Any] = [:]
             if let existingData = activity.contextData {
                 contextDict = (try? JSONSerialization.jsonObject(with: existingData) as? [String: Any]) ?? [:]
@@ -274,8 +274,8 @@ class BatchRuleOperations: ObservableObject {
             contextDict["productivityScore"] = score
             contextDict["assignedByRule"] = rule.id.uuidString
             activity.contextData = try JSONSerialization.data(withJSONObject: contextDict)
-            
-        case .addTags(let tags):
+
+        case let .addTags(tags):
             var contextDict: [String: Any] = [:]
             if let existingData = activity.contextData {
                 contextDict = (try? JSONSerialization.jsonObject(with: existingData) as? [String: Any]) ?? [:]
@@ -285,7 +285,7 @@ class BatchRuleOperations: ObservableObject {
             contextDict["tags"] = Array(Set(existingTags))
             contextDict["assignedByRule"] = rule.id.uuidString
             activity.contextData = try JSONSerialization.data(withJSONObject: contextDict)
-            
+
         case .ignore:
             var contextDict: [String: Any] = [:]
             if let existingData = activity.contextData {
@@ -295,7 +295,7 @@ class BatchRuleOperations: ObservableObject {
             contextDict["assignedByRule"] = rule.id.uuidString
             activity.contextData = try JSONSerialization.data(withJSONObject: contextDict)
         }
-        
+
         // Record that the rule was applied
         rule.recordApplication()
     }
@@ -315,7 +315,7 @@ struct RuleOperation {
     let affectedActivities: [ActivityUndoData]
     let appliedRules: [UUID: Int] // Rule ID to application count
     let description: String
-    
+
     enum OperationType {
         case batchApplication
         case retroactiveApplication
@@ -346,14 +346,14 @@ enum BatchOperationError: LocalizedError {
     case activityProcessingFailed(UUID, Error)
     case ruleHasNoAction(UUID)
     case invalidDateRange
-    
+
     var errorDescription: String? {
         switch self {
         case .noOperationToUndo:
             return "No operation available to undo"
-        case .activityProcessingFailed(let activityId, let error):
+        case let .activityProcessingFailed(activityId, error):
             return "Failed to process activity \(activityId): \(error.localizedDescription)"
-        case .ruleHasNoAction(let ruleId):
+        case let .ruleHasNoAction(ruleId):
             return "Rule \(ruleId) has no action defined"
         case .invalidDateRange:
             return "Invalid date range specified"

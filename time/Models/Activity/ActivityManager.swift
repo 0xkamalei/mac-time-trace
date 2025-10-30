@@ -31,8 +31,7 @@ class ActivityManager: ObservableObject {
 
     // MARK: - Initialization
 
-    private init() {
-    }
+    private init() {}
 
     // MARK: - Public Methods
 
@@ -42,8 +41,8 @@ class ActivityManager: ObservableObject {
 
         self.modelContext = modelContext
 
-        isStorageAvailable = true
-        consecutiveFailures = 0
+        self.isStorageAvailable = true
+        self.self.consecutiveFailures = 0
         lastSuccessfulSave = Date()
 
         Task {
@@ -91,7 +90,7 @@ class ActivityManager: ObservableObject {
 
     /// Stop tracking app activity
     func stopTracking(modelContext: ModelContext) {
-        if let current = currentActivity {
+        if let current = self.currentActivity {
             current.endTime = Date()
             current.duration = current.calculatedDuration
 
@@ -119,7 +118,7 @@ class ActivityManager: ObservableObject {
         notificationObservers.removeAll()
 
         self.modelContext = nil
-        currentActivity = nil
+        self.currentActivity = nil
         sleepStartTime = nil
 
         logger.info("Stopped tracking, removed all observers and cleared state")
@@ -196,14 +195,14 @@ class ActivityManager: ObservableObject {
                 return
             }
 
-            if let current = currentActivity,
+            if let current = self.currentActivity,
                current.appBundleId == appInfo.bundleId
             {
                 logger.debug("Ignoring switch to same app: \(appInfo.name)")
                 return
             }
 
-            if currentActivity == nil {
+            if self.currentActivity == nil {
                 let newActivity = Activity(
                     appName: appInfo.name,
                     appBundleId: appInfo.bundleId,
@@ -218,12 +217,12 @@ class ActivityManager: ObservableObject {
                     contextData: contextData
                 )
 
-                currentActivity = newActivity
+                self.currentActivity = newActivity
                 logger.info("Started tracking new activity - \(appInfo.name) (not saved yet)")
                 return
             }
 
-            if let current = currentActivity {
+            if let current = self.currentActivity {
                 if current.startTime > now {
                     logger.error("Current activity has invalid start time, fixing")
                     current.startTime = now.addingTimeInterval(-60) // Set to 1 minute ago as fallback
@@ -254,14 +253,14 @@ class ActivityManager: ObservableObject {
                 contextData: contextData
             )
 
-            currentActivity = newActivity
+            self.currentActivity = newActivity
 
             logger.info("Started new activity - \(appInfo.name) (\(appInfo.bundleId))")
 
         } catch {
             logger.error("Error tracking app switch - \(error.localizedDescription)")
 
-            currentActivity = nil
+            self.currentActivity = nil
 
             logHealthMetrics()
         }
@@ -273,9 +272,9 @@ class ActivityManager: ObservableObject {
     func saveActivity(_ activity: Activity, modelContext: ModelContext) async throws {
         try validateActivity(activity)
 
-        guard isStorageAvailable else {
+        guard self.isStorageAvailable else {
             logger.warning("Storage unavailable, adding activity to pending queue: \(activity.appName)")
-            pendingActivities.append(activity)
+            self.pendingActivities.append(activity)
             throw ActivityManagerError.storageUnavailable
         }
 
@@ -291,12 +290,12 @@ class ActivityManager: ObservableObject {
 
                 try modelContext.save()
 
-                consecutiveFailures = 0
+                self.self.consecutiveFailures = 0
                 lastSuccessfulSave = Date()
 
                 logger.info("Successfully saved activity - \(activity.appName) (\(activity.duration, privacy: .public)s) on attempt \(attempt)")
 
-                if !pendingActivities.isEmpty {
+                if !self.pendingActivities.isEmpty {
                     Task {
                         await processPendingActivities(modelContext: modelContext)
                     }
@@ -306,7 +305,7 @@ class ActivityManager: ObservableObject {
 
             } catch {
                 lastError = error
-                consecutiveFailures += 1
+                self.consecutiveFailures += 1
 
                 logger.error("Save attempt \(attempt) failed for activity \(activity.appName): \(error.localizedDescription)")
 
@@ -331,9 +330,9 @@ class ActivityManager: ObservableObject {
             return
         }
 
-        guard isStorageAvailable else {
+        guard self.isStorageAvailable else {
             logger.warning("Storage unavailable, adding \(activities.count) activities to pending queue")
-            pendingActivities.append(contentsOf: activities)
+            self.pendingActivities.append(contentsOf: activities)
             throw ActivityManagerError.storageUnavailable
         }
 
@@ -356,7 +355,7 @@ class ActivityManager: ObservableObject {
 
                 try modelContext.save()
 
-                consecutiveFailures = 0
+                self.self.consecutiveFailures = 0
                 lastSuccessfulSave = Date()
 
                 logger.info("Successfully batch saved \(activities.count) activities on attempt \(attempt)")
@@ -364,7 +363,7 @@ class ActivityManager: ObservableObject {
 
             } catch {
                 lastError = error
-                consecutiveFailures += 1
+                self.consecutiveFailures += 1
 
                 logger.error("Batch save attempt \(attempt) failed: \(error.localizedDescription)")
 
@@ -384,19 +383,19 @@ class ActivityManager: ObservableObject {
 
     /// Get the currently active activity (always returns in-memory state)
     func getCurrentActivity() -> Activity? {
-        return currentActivity
+        return self.currentActivity
     }
 
     /// Get system health status for monitoring and debugging
     func getHealthStatus() -> HealthStatus {
         return HealthStatus(
-            isStorageAvailable: isStorageAvailable,
-            consecutiveFailures: consecutiveFailures,
-            pendingActivitiesCount: pendingActivities.count,
-            lastSuccessfulSave: lastSuccessfulSave,
-            currentActivity: currentActivity?.appName,
-            isTracking: !notificationObservers.isEmpty,
-            sleepStartTime: sleepStartTime
+            isStorageAvailable: self.isStorageAvailable,
+            consecutiveFailures: self.consecutiveFailures,
+            pendingActivitiesCount: self.pendingActivities.count,
+            lastSuccessfulSave: self.lastSuccessfulSave,
+            currentActivity: self.currentActivity?.appName,
+            isTracking: !self.notificationObservers.isEmpty,
+            sleepStartTime: self.sleepStartTime
         )
     }
 
@@ -415,7 +414,7 @@ class ActivityManager: ObservableObject {
         }
 
         var isHealthy: Bool {
-            return isStorageAvailable && consecutiveFailures < 3 && pendingActivitiesCount < 10
+            return self.isStorageAvailable && self.consecutiveFailures < 3 && pendingActivitiesCount < 10
         }
     }
 
@@ -493,7 +492,7 @@ class ActivityManager: ObservableObject {
         }
 
         if activity.endTime == nil {
-            if let existing = currentActivity, existing.id != activity.id {
+            if let existing = self.currentActivity, existing.id != activity.id {
                 throw ActivityManagerError.invalidData("Only one active activity can exist at a time")
             }
         }
@@ -541,8 +540,8 @@ class ActivityManager: ObservableObject {
     private func handleSaveFailure(activity: Activity, error: Error) {
         logger.error("Save failed after all retry attempts for activity \(activity.appName): \(error.localizedDescription)")
 
-        if consecutiveFailures >= maxConsecutiveFailures {
-            isStorageAvailable = false
+        if self.consecutiveFailures >= maxConsecutiveFailures {
+            self.isStorageAvailable = false
             logger.critical("Storage marked as unavailable after \(self.consecutiveFailures) consecutive failures")
 
             Task {
@@ -550,7 +549,7 @@ class ActivityManager: ObservableObject {
             }
         }
 
-        pendingActivities.append(activity)
+        self.pendingActivities.append(activity)
 
         logHealthMetrics()
     }
@@ -559,24 +558,24 @@ class ActivityManager: ObservableObject {
     private func handleBatchSaveFailure(activities: [Activity], error: Error) {
         logger.error("Batch save failed after all retry attempts for \(activities.count) activities: \(error.localizedDescription)")
 
-        if consecutiveFailures >= maxConsecutiveFailures {
-            isStorageAvailable = false
+        if self.consecutiveFailures >= maxConsecutiveFailures {
+            self.isStorageAvailable = false
             logger.critical("Storage marked as unavailable after \(self.consecutiveFailures) consecutive failures")
         }
 
-        pendingActivities.append(contentsOf: activities)
+        self.pendingActivities.append(contentsOf: activities)
 
         logHealthMetrics()
     }
 
     /// Process pending activities when storage becomes available
     private func processPendingActivities(modelContext: ModelContext) async {
-        guard !pendingActivities.isEmpty, isStorageAvailable else { return }
+        guard !self.pendingActivities.isEmpty, self.isStorageAvailable else { return }
 
         logger.info("Processing \(self.pendingActivities.count) pending activities")
 
         let activitiesToProcess = pendingActivities
-        pendingActivities.removeAll()
+        self.pendingActivities.removeAll()
 
         var successCount = 0
         var failedActivities: [Activity] = []
@@ -591,7 +590,7 @@ class ActivityManager: ObservableObject {
             }
         }
 
-        pendingActivities.append(contentsOf: failedActivities)
+        self.pendingActivities.append(contentsOf: failedActivities)
 
         logger.info("Processed \(successCount) pending activities, \(failedActivities.count) failed")
     }
@@ -639,7 +638,7 @@ class ActivityManager: ObservableObject {
 
     /// Check storage availability and attempt to restore service
     private func checkStorageAvailability() async {
-        guard !isStorageAvailable else { return }
+        guard !self.isStorageAvailable else { return }
 
         logger.info("Checking storage availability...")
 
@@ -655,8 +654,8 @@ class ActivityManager: ObservableObject {
             descriptor.fetchLimit = 1
             _ = try context.fetch(descriptor)
 
-            isStorageAvailable = true
-            consecutiveFailures = 0
+            self.isStorageAvailable = true
+            self.self.consecutiveFailures = 0
             logger.info("Storage availability restored")
 
             await processPendingActivities(modelContext: context)
@@ -887,7 +886,7 @@ class ActivityManager: ObservableObject {
 
             sleepStartTime = Date()
 
-            if let current = currentActivity {
+            if let current = self.currentActivity {
                 let sleepTime = Date()
                 current.endTime = sleepTime
                 current.duration = current.calculatedDuration
@@ -907,10 +906,10 @@ class ActivityManager: ObservableObject {
                     throw ActivityManagerError.noModelContext
                 }
 
-                currentActivity = nil
+                self.currentActivity = nil
             }
 
-            if !pendingActivities.isEmpty, isStorageAvailable {
+            if !self.pendingActivities.isEmpty, self.isStorageAvailable {
                 logger.info("Processing \(self.pendingActivities.count) pending activities before sleep")
                 if let context = modelContext {
                     Task {
@@ -925,7 +924,7 @@ class ActivityManager: ObservableObject {
             logger.error("Error handling system sleep - \(error.localizedDescription)")
 
             sleepStartTime = Date()
-            currentActivity = nil
+            self.currentActivity = nil
 
             logHealthMetrics()
 
@@ -945,13 +944,13 @@ class ActivityManager: ObservableObject {
 
         sleepStartTime = nil
 
-        if !isStorageAvailable {
+        if !self.isStorageAvailable {
             Task {
                 await checkStorageAvailability()
             }
         }
 
-        if !pendingActivities.isEmpty, isStorageAvailable {
+        if !self.pendingActivities.isEmpty, self.isStorageAvailable {
             logger.info("Processing \(self.pendingActivities.count) pending activities after wake")
             if let context = modelContext {
                 Task {
@@ -960,29 +959,27 @@ class ActivityManager: ObservableObject {
             }
         }
 
-
-
         logger.info("Wake handling completed - ready for new app activation events")
         logHealthMetrics()
     }
-    
+
     /// End the current activity at a specific time (used for idle detection)
     func endCurrentActivityAt(time: Date, modelContext: ModelContext) {
-        guard let current = currentActivity else {
+        guard let current = self.currentActivity else {
             logger.debug("No current activity to end at specified time")
             return
         }
-        
+
         logger.info("Ending current activity '\(current.appName)' at \(time)")
-        
+
         current.endTime = time
         current.duration = current.calculatedDuration
-        
+
         if current.duration < 0 {
             logger.warning("Negative duration detected when ending activity at specific time, setting to 0")
             current.duration = 0
         }
-        
+
         Task {
             do {
                 try await saveActivity(current, modelContext: modelContext)
@@ -991,19 +988,19 @@ class ActivityManager: ObservableObject {
                 logger.error("Error saving activity ended at specific time: \(error)")
             }
         }
-        
-        currentActivity = nil
+
+        self.currentActivity = nil
     }
-    
+
     // MARK: - Data Conflict Resolution Support
-    
+
     /// Get all activities from the database for conflict resolution
     func getAllActivities() async -> [Activity] {
         guard let modelContext = modelContext else {
             logger.error("No model context available for getAllActivities")
             return []
         }
-        
+
         do {
             let descriptor = FetchDescriptor<Activity>(
                 sortBy: [SortDescriptor(\.startTime, order: .reverse)]
@@ -1016,14 +1013,14 @@ class ActivityManager: ObservableObject {
             return []
         }
     }
-    
+
     /// Update an activity for conflict resolution
     func updateActivity(_ activity: Activity) async {
         guard let modelContext = modelContext else {
             logger.error("No model context available for updateActivity")
             return
         }
-        
+
         do {
             try validateActivity(activity)
             try modelContext.save()
@@ -1032,14 +1029,14 @@ class ActivityManager: ObservableObject {
             logger.error("Failed to update activity: \(error.localizedDescription)")
         }
     }
-    
+
     /// Delete an activity for conflict resolution
     func deleteActivity(_ activity: Activity) async {
         guard let modelContext = modelContext else {
             logger.error("No model context available for deleteActivity")
             return
         }
-        
+
         do {
             modelContext.delete(activity)
             try modelContext.save()

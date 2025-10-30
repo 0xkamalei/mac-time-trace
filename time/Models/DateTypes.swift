@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppDateRange : Equatable{
+struct AppDateRange: Equatable {
     let startDate: Date
     let endDate: Date
 }
@@ -11,11 +11,11 @@ enum AppDateRangePreset: String, CaseIterable {
     case thisMonth = "This Month"
     case thisQuarter = "This Quarter"
     case thisYear = "This Year"
-    
+
     case yesterday = "Yesterday"
     case lastWeek = "Last Week"
     case lastMonth = "Last Month"
-    
+
     case past7Days = "Past 7 Days"
     case past15Days = "Past 15 Days"
     case past30Days = "Past 30 Days"

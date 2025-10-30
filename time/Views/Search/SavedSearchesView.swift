@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 /// View for managing saved searches
 struct SavedSearchesView: View {
@@ -8,23 +8,23 @@ struct SavedSearchesView: View {
     @State private var newSearchName = ""
     @State private var selectedSearch: SavedSearch?
     @State private var showingDeleteConfirmation = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
             HStack {
                 Text("Saved Searches")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 Button("Save Current") {
                     showingSaveDialog = true
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(searchManager.searchQuery.isEmpty && !searchManager.activeFilters.hasActiveFilters)
             }
-            
+
             // Saved searches list
             if searchManager.savedSearches.isEmpty {
                 emptyStateView
@@ -37,7 +37,7 @@ struct SavedSearchesView: View {
             saveSearchDialog
         }
         .alert("Delete Saved Search", isPresented: $showingDeleteConfirmation) {
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 if let search = selectedSearch {
                     searchManager.deleteSavedSearch(search)
@@ -50,17 +50,17 @@ struct SavedSearchesView: View {
             }
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "bookmark")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
-            
+
             Text("No Saved Searches")
                 .font(.headline)
                 .foregroundColor(.secondary)
-            
+
             Text("Save your frequently used searches for quick access")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -69,7 +69,7 @@ struct SavedSearchesView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(40)
     }
-    
+
     private var savedSearchesList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 12) {
@@ -88,27 +88,27 @@ struct SavedSearchesView: View {
             }
         }
     }
-    
+
     private var saveSearchDialog: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Save Search")
                 .font(.headline)
-            
+
             VStack(alignment: .leading, spacing: 12) {
                 Text("Search Name")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                
+
                 TextField("Enter a name for this search", text: $newSearchName)
                     .textFieldStyle(.roundedBorder)
             }
-            
+
             // Preview of what will be saved
             VStack(alignment: .leading, spacing: 8) {
                 Text("This search will include:")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     if !searchManager.searchQuery.isEmpty {
                         HStack {
@@ -119,7 +119,7 @@ struct SavedSearchesView: View {
                                 .font(.caption)
                         }
                     }
-                    
+
                     if searchManager.activeFilters.hasActiveFilters {
                         HStack {
                             Image(systemName: "line.3.horizontal.decrease.circle")
@@ -132,16 +132,16 @@ struct SavedSearchesView: View {
                 }
                 .padding(.leading, 16)
             }
-            
+
             HStack {
                 Button("Cancel") {
                     showingSaveDialog = false
                     newSearchName = ""
                 }
                 .buttonStyle(.borderless)
-                
+
                 Spacer()
-                
+
                 Button("Save") {
                     searchManager.saveCurrentSearch(name: newSearchName)
                     showingSaveDialog = false
@@ -161,38 +161,38 @@ struct SavedSearchRow: View {
     let savedSearch: SavedSearch
     let onLoad: () -> Void
     let onDelete: () -> Void
-    
+
     @State private var isHovering = false
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(savedSearch.name)
                     .font(.system(size: 14, weight: .medium))
-                
+
                 Text(savedSearch.description)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .lineLimit(2)
-                
+
                 HStack {
                     Text("Created: \(savedSearch.createdAt, style: .date)")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
-                    
+
                     if let lastUsed = savedSearch.lastUsedAt {
                         Text("•")
                             .foregroundColor(.secondary)
-                        
+
                         Text("Last used: \(lastUsed, style: .relative)")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             if isHovering {
                 HStack(spacing: 8) {
                     Button("Load") {
@@ -200,7 +200,7 @@ struct SavedSearchRow: View {
                     }
                     .buttonStyle(.borderless)
                     .font(.caption)
-                    
+
                     Button(action: onDelete) {
                         Image(systemName: "trash")
                             .foregroundColor(.red)
@@ -227,15 +227,15 @@ struct SavedSearchRow: View {
 /// Search history view
 struct SearchHistoryView: View {
     @ObservedObject var searchManager: SearchManager
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Search History")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 if !searchManager.searchHistory.isEmpty {
                     Button("Clear History") {
                         searchManager.clearHistory()
@@ -244,17 +244,17 @@ struct SearchHistoryView: View {
                     .foregroundColor(.red)
                 }
             }
-            
+
             if searchManager.searchHistory.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
-                    
+
                     Text("No Search History")
                         .font(.headline)
                         .foregroundColor(.secondary)
-                    
+
                     Text("Your recent searches will appear here")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -287,21 +287,21 @@ struct SearchHistoryRow: View {
     let query: String
     let isRecent: Bool
     let onSelect: () -> Void
-    
+
     @State private var isHovering = false
-    
+
     var body: some View {
         HStack {
             Image(systemName: "clock.arrow.circlepath")
                 .foregroundColor(isRecent ? .blue : .secondary)
                 .font(.system(size: 12))
-            
+
             Text(query)
                 .font(.system(size: 13))
                 .foregroundColor(isHovering ? .primary : .secondary)
-            
+
             Spacer()
-            
+
             if isRecent {
                 Text("Recent")
                     .font(.system(size: 10))
@@ -331,27 +331,27 @@ struct SearchHistoryRow: View {
 struct AdvancedSearchOptionsView: View {
     @ObservedObject var searchManager: SearchManager
     @State private var showingQueryHelp = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Advanced Search")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 Button("Query Help") {
                     showingQueryHelp = true
                 }
                 .buttonStyle(.borderless)
                 .foregroundColor(.blue)
             }
-            
+
             VStack(alignment: .leading, spacing: 12) {
                 Text("Search Operators")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                
+
                 VStack(alignment: .leading, spacing: 8) {
                     operatorExample("app:Xcode", "Search in specific app")
                     operatorExample("project:\"My Project\"", "Search in specific project")
@@ -361,15 +361,15 @@ struct AdvancedSearchOptionsView: View {
                     operatorExample("\"exact phrase\"", "Search exact phrase")
                 }
             }
-            
+
             VStack(alignment: .leading, spacing: 12) {
                 Text("Quick Searches")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                
+
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
-                    GridItem(.flexible())
+                    GridItem(.flexible()),
                 ], spacing: 8) {
                     quickSearchButton("Today's activities", "after:today")
                     quickSearchButton("Long sessions", "duration:>1h")
@@ -383,7 +383,7 @@ struct AdvancedSearchOptionsView: View {
             SearchQueryHelpView()
         }
     }
-    
+
     private func operatorExample(_ query: String, _ description: String) -> some View {
         HStack {
             Text(query)
@@ -392,15 +392,15 @@ struct AdvancedSearchOptionsView: View {
                 .padding(.vertical, 4)
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(4)
-            
+
             Text(description)
                 .font(.system(size: 12))
                 .foregroundColor(.secondary)
-            
+
             Spacer()
         }
     }
-    
+
     private func quickSearchButton(_ title: String, _ query: String) -> some View {
         Button(title) {
             searchManager.searchQuery = query
@@ -425,18 +425,18 @@ struct SearchQueryHelpView: View {
                     helpSection("Basic Search", [
                         ("Simple text", "Search for any text in activities, time entries, or projects"),
                         ("\"Exact phrase\"", "Search for an exact phrase using quotes"),
-                        ("-exclude", "Exclude terms by prefixing with minus sign")
+                        ("-exclude", "Exclude terms by prefixing with minus sign"),
                     ])
-                    
+
                     helpSection("Filter Operators", [
                         ("app:name", "Filter by application name"),
                         ("project:name", "Filter by project name"),
                         ("after:date", "Show items after specific date"),
                         ("before:date", "Show items before specific date"),
                         ("on:date", "Show items on specific date"),
-                        ("duration:time", "Filter by duration (e.g., >30m, <2h)")
+                        ("duration:time", "Filter by duration (e.g., >30m, <2h)"),
                     ])
-                    
+
                     helpSection("Date Formats", [
                         ("2024-01-01", "Specific date (YYYY-MM-DD)"),
                         ("today", "Today's date"),
@@ -444,22 +444,22 @@ struct SearchQueryHelpView: View {
                         ("thisweek", "Start of current week"),
                         ("lastweek", "Start of last week"),
                         ("3d", "3 days ago"),
-                        ("1w", "1 week ago")
+                        ("1w", "1 week ago"),
                     ])
-                    
+
                     helpSection("Duration Formats", [
                         ("30m", "30 minutes"),
                         ("1h", "1 hour"),
                         ("1h30m", "1 hour 30 minutes"),
                         (">30m", "More than 30 minutes"),
-                        ("<2h", "Less than 2 hours")
+                        ("<2h", "Less than 2 hours"),
                     ])
-                    
+
                     helpSection("Examples", [
                         ("app:Xcode after:today", "Xcode usage today"),
                         ("project:\"My Project\" duration:>1h", "Long sessions in My Project"),
                         ("\"bug fix\" -test", "Bug fix work excluding tests"),
-                        ("after:lastweek before:today", "Last week's activities")
+                        ("after:lastweek before:today", "Last week's activities"),
                     ])
                 }
                 .padding()
@@ -475,12 +475,12 @@ struct SearchQueryHelpView: View {
         }
         .frame(width: 500, height: 600)
     }
-    
+
     private func helpSection(_ title: String, _ items: [(String, String)]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.headline)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(items, id: \.0) { item in
                     HStack(alignment: .top) {
@@ -491,11 +491,11 @@ struct SearchQueryHelpView: View {
                             .background(Color(NSColor.controlBackgroundColor))
                             .cornerRadius(4)
                             .frame(minWidth: 120, alignment: .leading)
-                        
+
                         Text(item.1)
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
-                        
+
                         Spacer()
                     }
                 }
@@ -509,18 +509,18 @@ struct SearchQueryHelpView: View {
 #Preview {
     let container = try! ModelContainer(for: Activity.self, TimeEntry.self, Project.self)
     let searchManager = SearchManager(modelContext: container.mainContext)
-    
+
     TabView {
         SavedSearchesView(searchManager: searchManager)
             .tabItem {
                 Label("Saved", systemImage: "bookmark")
             }
-        
+
         SearchHistoryView(searchManager: searchManager)
             .tabItem {
                 Label("History", systemImage: "clock.arrow.circlepath")
             }
-        
+
         AdvancedSearchOptionsView(searchManager: searchManager)
             .tabItem {
                 Label("Advanced", systemImage: "gearshape")

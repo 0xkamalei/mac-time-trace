@@ -5,7 +5,7 @@ import SwiftUI
 struct HierarchicalActivityRow: View {
     let group: ActivityHierarchyGroup
     @State private var isExpanded: Bool = false
-    
+
     private var indentationLevel: CGFloat {
         switch group.level {
         case .project: return 0
@@ -16,12 +16,12 @@ struct HierarchicalActivityRow: View {
         case .appTitle: return 100
         }
     }
-    
+
     private var iconName: String {
         switch group.level {
         case .project: return "folder"
         case .subproject: return "folder.badge.plus"
-        case .timeEntry: 
+        case .timeEntry:
             if group.hasOnlyTimeEntries {
                 return "clock.fill"
             } else if group.hasMixedContent {
@@ -30,7 +30,7 @@ struct HierarchicalActivityRow: View {
                 return "clock"
             }
         case .timePeriod: return "calendar"
-        case .appName: 
+        case .appName:
             if group.name == "Manual Time Entries" {
                 return "pencil.circle"
             } else {
@@ -39,7 +39,7 @@ struct HierarchicalActivityRow: View {
         case .appTitle: return "doc.text"
         }
     }
-    
+
     private var fontSize: Font {
         switch group.level {
         case .project: return .headline
@@ -50,7 +50,7 @@ struct HierarchicalActivityRow: View {
         case .appTitle: return .caption
         }
     }
-    
+
     private var textColor: Color {
         switch group.level {
         case .project: return .primary
@@ -61,13 +61,13 @@ struct HierarchicalActivityRow: View {
         case .appTitle: return Color.secondary.opacity(0.7)
         }
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Spacer()
                     .frame(width: indentationLevel)
-                
+
                 if group.hasChildren {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(.caption)
@@ -77,19 +77,19 @@ struct HierarchicalActivityRow: View {
                     Spacer()
                         .frame(width: 12)
                 }
-                
+
                 Image(systemName: iconName)
                     .font(.system(size: iconSize))
                     .foregroundColor(iconColor)
                     .frame(width: 20)
-                
+
                 Text(group.name)
                     .font(fontSize)
                     .foregroundColor(textColor)
                     .lineLimit(1)
-                
+
                 Spacer()
-                
+
                 HStack(spacing: 8) {
                     if group.itemCount > 1 || group.hasChildren {
                         Text("\(group.itemCount)")
@@ -100,7 +100,7 @@ struct HierarchicalActivityRow: View {
                             .background(Color.secondary.opacity(0.1))
                             .clipShape(Capsule())
                     }
-                    
+
                     Text(group.durationString)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -116,17 +116,17 @@ struct HierarchicalActivityRow: View {
                     }
                 }
             }
-            
+
             if isExpanded && group.hasChildren {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(group.children) { childGroup in
                         HierarchicalActivityRow(group: childGroup)
                     }
-                    
+
                     ForEach(group.activities) { activity in
                         ActivityLeafRow(activity: activity, indentationLevel: indentationLevel + 20)
                     }
-                    
+
                     ForEach(group.timeEntries) { timeEntry in
                         TimeEntryLeafRow(timeEntry: timeEntry, indentationLevel: indentationLevel + 20)
                     }
@@ -134,7 +134,7 @@ struct HierarchicalActivityRow: View {
             }
         }
     }
-    
+
     private var iconSize: CGFloat {
         switch group.level {
         case .project: return 16
@@ -145,12 +145,12 @@ struct HierarchicalActivityRow: View {
         case .appTitle: return 10
         }
     }
-    
+
     private var iconColor: Color {
         switch group.level {
         case .project: return .blue
         case .subproject: return .green
-        case .timeEntry: 
+        case .timeEntry:
             if group.hasOnlyTimeEntries {
                 return .orange
             } else if group.hasMixedContent {
@@ -159,7 +159,7 @@ struct HierarchicalActivityRow: View {
                 return .orange
             }
         case .timePeriod: return .purple
-        case .appName: 
+        case .appName:
             if group.name == "Manual Time Entries" {
                 return .orange
             } else {
@@ -168,7 +168,7 @@ struct HierarchicalActivityRow: View {
         case .appTitle: return .gray
         }
     }
-    
+
     private var rowVerticalPadding: CGFloat {
         switch group.level {
         case .project: return 8
@@ -185,27 +185,27 @@ struct HierarchicalActivityRow: View {
 struct ActivityLeafRow: View {
     let activity: Activity
     let indentationLevel: CGFloat
-    
+
     var body: some View {
         HStack {
             Spacer()
                 .frame(width: indentationLevel)
-            
+
             Spacer()
                 .frame(width: 12)
-            
+
             Image(systemName: activity.icon)
                 .font(.system(size: 10))
                 .foregroundColor(.gray)
                 .frame(width: 20)
-            
+
             Text(activity.appTitle ?? activity.appName)
                 .font(.caption2)
                 .foregroundColor(Color.secondary.opacity(0.7))
                 .lineLimit(1)
-            
+
             Spacer()
-            
+
             Text(activity.durationString)
                 .font(.caption2)
                 .foregroundColor(Color.secondary.opacity(0.7))
@@ -219,26 +219,26 @@ struct ActivityLeafRow: View {
 struct TimeEntryLeafRow: View {
     let timeEntry: TimeEntry
     let indentationLevel: CGFloat
-    
+
     var body: some View {
         HStack {
             Spacer()
                 .frame(width: indentationLevel)
-            
+
             Spacer()
                 .frame(width: 12)
-            
+
             Image(systemName: "clock.fill")
                 .font(.system(size: 10))
                 .foregroundColor(.orange)
                 .frame(width: 20)
-            
+
             VStack(alignment: .leading, spacing: 1) {
                 Text(timeEntry.title)
                     .font(.caption2)
                     .foregroundColor(.primary)
                     .lineLimit(1)
-                
+
                 if let notes = timeEntry.notes, !notes.isEmpty {
                     Text(notes)
                         .font(.caption2)
@@ -246,15 +246,15 @@ struct TimeEntryLeafRow: View {
                         .lineLimit(1)
                 }
             }
-            
+
             Spacer()
-            
+
             VStack(alignment: .trailing, spacing: 1) {
                 Text(timeEntry.durationString)
                     .font(.caption2)
                     .foregroundColor(.orange)
                     .monospacedDigit()
-                
+
                 Text("Manual")
                     .font(.caption2)
                     .foregroundColor(Color.secondary.opacity(0.6))
@@ -277,7 +277,7 @@ struct TimeEntryLeafRow: View {
         endTime: Date().addingTimeInterval(300),
         icon: "safari"
     )
-    
+
     let sampleTimeEntry = TimeEntry(
         projectId: "project1",
         title: "Code Review Session",
@@ -285,7 +285,7 @@ struct TimeEntryLeafRow: View {
         startTime: Date(),
         endTime: Date().addingTimeInterval(1800) // 30 minutes
     )
-    
+
     let sampleGroup = ActivityHierarchyGroup(
         name: "Development Project",
         level: .project,
@@ -310,7 +310,7 @@ struct TimeEntryLeafRow: View {
                                                 name: "github.com",
                                                 level: .appTitle,
                                                 activities: [sampleActivity]
-                                            )
+                                            ),
                                         ]
                                     ),
                                     ActivityHierarchyGroup(
@@ -321,18 +321,18 @@ struct TimeEntryLeafRow: View {
                                                 name: "Code Review Session",
                                                 level: .appTitle,
                                                 timeEntries: [sampleTimeEntry]
-                                            )
+                                            ),
                                         ]
-                                    )
+                                    ),
                                 ]
-                            )
+                            ),
                         ]
-                    )
+                    ),
                 ]
-            )
+            ),
         ]
     )
-    
+
     return List {
         HierarchicalActivityRow(group: sampleGroup)
     }

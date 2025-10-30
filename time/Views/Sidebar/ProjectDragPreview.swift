@@ -4,22 +4,22 @@ import SwiftUI
 struct ProjectDragPreview: View {
     let project: Project
     let isDragging: Bool
-    
+
     private let shadowRadius: CGFloat
     private let shadowOffset: CGSize
     private let strokeOpacity: Double
     private let strokeWidth: CGFloat
-    
+
     init(project: Project, isDragging: Bool = false) {
         self.project = project
         self.isDragging = isDragging
-        
-        self.shadowRadius = isDragging ? 8 : 4
-        self.shadowOffset = CGSize(width: 0, height: isDragging ? 4 : 2)
-        self.strokeOpacity = isDragging ? 0.6 : 0.3
-        self.strokeWidth = isDragging ? 2 : 1
+
+        shadowRadius = isDragging ? 8 : 4
+        shadowOffset = CGSize(width: 0, height: isDragging ? 4 : 2)
+        strokeOpacity = isDragging ? 0.6 : 0.3
+        strokeWidth = isDragging ? 2 : 1
     }
-    
+
     var body: some View {
         HStack(spacing: 8) {
             Circle()
@@ -30,13 +30,13 @@ struct ProjectDragPreview: View {
                         .stroke(Color.primary.opacity(0.2), lineWidth: 0.5)
                 )
                 .drawingGroup() // Optimize rendering for better performance
-            
+
             Text(project.name)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .truncationMode(.tail)
-            
+
             if project.depth > 0 {
                 Text("(\(project.depth + 1))")
                     .font(.system(size: 12, weight: .regular))

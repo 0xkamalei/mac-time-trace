@@ -17,8 +17,5 @@
       ],
       "disabled": false
     }
-  },
-   "checkpointing": {
-    "enabled": true
   }
 }

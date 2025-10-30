@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct RuleManagementView: View {
     @Environment(\.modelContext) private var modelContext
@@ -10,27 +10,27 @@ struct RuleManagementView: View {
     @State private var showingDeleteAlert = false
     @State private var ruleToDelete: Rule?
     @State private var searchText = ""
-    
+
     init(modelContext: ModelContext) {
         let ruleManager = RuleManager(modelContext: modelContext)
         let ruleEngine = RuleEngine(ruleManager: ruleManager, modelContext: modelContext)
-        self._ruleManager = StateObject(wrappedValue: ruleManager)
-        self._ruleEngine = StateObject(wrappedValue: ruleEngine)
+        _ruleManager = StateObject(wrappedValue: ruleManager)
+        _ruleEngine = StateObject(wrappedValue: ruleEngine)
     }
-    
+
     var filteredRules: [Rule] {
         if searchText.isEmpty {
             return ruleManager.rules
         } else {
             return ruleManager.rules.filter { rule in
                 rule.name.localizedCaseInsensitiveContains(searchText) ||
-                rule.conditions.contains { condition in
-                    condition.displayName.localizedCaseInsensitiveContains(searchText)
-                }
+                    rule.conditions.contains { condition in
+                        condition.displayName.localizedCaseInsensitiveContains(searchText)
+                    }
             }
         }
     }
-    
+
     var body: some View {
         NavigationSplitView {
             // Rules List
@@ -48,7 +48,7 @@ struct RuleManagementView: View {
                 .cornerRadius(8)
                 .padding(.horizontal)
                 .padding(.top)
-                
+
                 // Rules List
                 List(filteredRules, id: \.id, selection: $selectedRule) { rule in
                     RuleRowView(rule: rule, ruleManager: ruleManager)
@@ -60,7 +60,7 @@ struct RuleManagementView: View {
                         }
                 }
                 .listStyle(.sidebar)
-                
+
                 // Statistics Footer
                 RuleStatisticsFooter(ruleManager: ruleManager, ruleEngine: ruleEngine)
             }
@@ -71,15 +71,15 @@ struct RuleManagementView: View {
                         showingCreateRule = true
                     }
                 }
-                
+
                 ToolbarItem(placement: .secondaryAction) {
                     Menu("Actions") {
                         Button("Refresh Rules") {
                             ruleManager.loadRules()
                         }
-                        
+
                         Divider()
-                        
+
                         Button("Apply All Rules") {
                             Task {
                                 // This would need ProjectManager integration
@@ -102,7 +102,7 @@ struct RuleManagementView: View {
             CreateRuleView(ruleManager: ruleManager)
         }
         .alert("Delete Rule", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
+            Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 if let rule = ruleToDelete {
                     try? ruleManager.deleteRule(rule)
@@ -124,7 +124,7 @@ struct RuleManagementView: View {
 struct RuleRowView: View {
     let rule: Rule
     let ruleManager: RuleManager
-    
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -132,9 +132,9 @@ struct RuleRowView: View {
                     Text(rule.name)
                         .font(.headline)
                         .foregroundColor(rule.isEnabled ? .primary : .secondary)
-                    
+
                     Spacer()
-                    
+
                     if rule.priority > 0 {
                         Text("Priority: \(rule.priority)")
                             .font(.caption)
@@ -144,27 +144,27 @@ struct RuleRowView: View {
                             .cornerRadius(4)
                     }
                 }
-                
+
                 Text("\(rule.conditions.count) condition\(rule.conditions.count == 1 ? "" : "s")")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 if let action = rule.action {
                     Text(action.displayName)
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 if rule.applicationCount > 0 {
                     Text("Applied \(rule.applicationCount) times")
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Spacer()
-            
+
             Toggle("", isOn: Binding(
                 get: { rule.isEnabled },
                 set: { _ in
@@ -184,18 +184,18 @@ struct RuleContextMenu: View {
     let rule: Rule
     let ruleManager: RuleManager
     let onDelete: () -> Void
-    
+
     var body: some View {
         Button("Duplicate") {
             try? ruleManager.duplicateRule(rule)
         }
-        
+
         Button(rule.isEnabled ? "Disable" : "Enable") {
             try? ruleManager.toggleRule(rule)
         }
-        
+
         Divider()
-        
+
         Button("Delete", role: .destructive) {
             onDelete()
         }
@@ -207,13 +207,13 @@ struct RuleContextMenu: View {
 struct RuleStatisticsFooter: View {
     let ruleManager: RuleManager
     let ruleEngine: RuleEngine
-    
+
     var body: some View {
         let stats = ruleEngine.getRuleStatistics()
-        
+
         VStack(spacing: 4) {
             Divider()
-            
+
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Rules: \(stats.ruleStatistics.totalRules)")
@@ -221,9 +221,9 @@ struct RuleStatisticsFooter: View {
                     Text("Enabled: \(stats.ruleStatistics.enabledRules)")
                         .font(.caption2)
                 }
-                
+
                 Spacer()
-                
+
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("Applications: \(stats.ruleStatistics.totalApplications)")
                         .font(.caption2)
@@ -247,11 +247,11 @@ struct RuleEmptyStateView: View {
             Image(systemName: "list.bullet.rectangle")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary)
-            
+
             Text("Select a Rule")
                 .font(.title2)
                 .fontWeight(.medium)
-            
+
             Text("Choose a rule from the sidebar to view its details and configuration.")
                 .font(.body)
                 .foregroundColor(.secondary)

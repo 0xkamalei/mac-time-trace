@@ -1,30 +1,30 @@
-import SwiftUI
 import os
+import SwiftUI
 
 struct EditTimeEntryView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var projectManager: ProjectManager
     @StateObject private var timeEntryManager = TimeEntryManager.shared
     @Binding var isPresented: Bool
-    
+
     let timeEntry: TimeEntry
-    
+
     @State private var selectedProject: Project?
     @State private var isAddingSubproject = false
     @State private var newSubprojectName = ""
     @State private var title: String = ""
     @State private var notes: String = ""
-    @State private var startTime: Date = Date()
-    @State private var endTime: Date = Date()
+    @State private var startTime: Date = .init()
+    @State private var endTime: Date = .init()
     @State private var duration: TimeInterval = 0
-    
+
     // Error handling and validation
     @State private var errorMessage: String?
     @State private var isUpdating: Bool = false
     @State private var validationErrors: [String] = []
-    
+
     private let logger = Logger(subsystem: "com.time-vscode.EditTimeEntryView", category: "UI")
-    
+
     var body: some View {
         VStack(spacing: 16) {
             Text("Edit Time Entry")
@@ -44,7 +44,7 @@ struct EditTimeEntryView: View {
                 .background(Color.orange.opacity(0.1))
                 .cornerRadius(8)
             }
-            
+
             // Validation errors
             if !validationErrors.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
@@ -171,14 +171,14 @@ struct EditTimeEntryView: View {
                     Text("Duration:").frame(width: 120, alignment: .leading)
                     Text(formatDuration(duration))
                         .foregroundColor(duration < 60 ? .red : .primary)
-                    Stepper("", value: $duration, in: 60...86400, step: 60)
+                    Stepper("", value: $duration, in: 60 ... 86400, step: 60)
                         .labelsHidden()
                         .onChange(of: duration) { _, _ in
                             updateEndTimeFromDuration()
                             validateInput()
                         }
                 }
-                
+
                 // Show original values for reference
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Original Values:")
@@ -206,7 +206,7 @@ struct EditTimeEntryView: View {
                 .keyboardShortcut(.cancelAction)
 
                 Spacer()
-                
+
                 Button("Reset") {
                     resetToOriginalValues()
                 }
@@ -227,32 +227,34 @@ struct EditTimeEntryView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .timeEntryDidChange)) { notification in
             logger.debug("EditTimeEntryView received time entry change notification")
-            
+
             // Check if the time entry being edited was modified externally
             if let userInfo = notification.userInfo,
                let modifiedTimeEntryId = userInfo["timeEntryId"] as? String,
                modifiedTimeEntryId == timeEntry.id.uuidString,
                let operation = userInfo["operation"] as? String,
-               operation != "update" { // Avoid reacting to our own updates
+               operation != "update"
+            { // Avoid reacting to our own updates
                 logger.info("Time entry being edited was modified externally, refreshing form")
                 populateFormWithTimeEntry()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .timeEntryWasDeleted)) { notification in
             logger.debug("EditTimeEntryView received time entry deletion notification")
-            
+
             // Check if the time entry being edited was deleted
             if let userInfo = notification.userInfo,
                let deletedTimeEntryId = userInfo["timeEntryId"] as? String,
-               deletedTimeEntryId == timeEntry.id.uuidString {
+               deletedTimeEntryId == timeEntry.id.uuidString
+            {
                 logger.warning("Time entry being edited was deleted, closing form")
                 isPresented = false
             }
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func populateFormWithTimeEntry() {
         // Set form fields from the time entry
         title = timeEntry.title
@@ -260,7 +262,7 @@ struct EditTimeEntryView: View {
         startTime = timeEntry.startTime
         endTime = timeEntry.endTime
         duration = timeEntry.calculatedDuration
-        
+
         // Find and set the selected project
         if let projectId = timeEntry.projectId {
             selectedProject = projectManager.getProject(by: projectId)
@@ -268,29 +270,29 @@ struct EditTimeEntryView: View {
             selectedProject = nil
         }
     }
-    
+
     private func resetToOriginalValues() {
         populateFormWithTimeEntry()
         validateInput()
         errorMessage = nil
     }
-    
+
     private func hasChanges() -> Bool {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let originalNotes = timeEntry.notes ?? ""
-        
+
         return trimmedTitle != timeEntry.title ||
-               trimmedNotes != originalNotes ||
-               startTime != timeEntry.startTime ||
-               endTime != timeEntry.endTime ||
-               selectedProject?.id != timeEntry.projectId
+            trimmedNotes != originalNotes ||
+            startTime != timeEntry.startTime ||
+            endTime != timeEntry.endTime ||
+            selectedProject?.id != timeEntry.projectId
     }
-    
+
     private func validateInput() {
         validationErrors.removeAll()
         errorMessage = nil
-        
+
         // Validate title
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedTitle.isEmpty {
@@ -298,38 +300,38 @@ struct EditTimeEntryView: View {
         } else if trimmedTitle.count > 200 {
             validationErrors.append("Title cannot exceed 200 characters")
         }
-        
+
         // Validate notes
         if notes.count > 1000 {
             validationErrors.append("Notes cannot exceed 1000 characters")
         }
-        
+
         // Validate time range
         if endTime <= startTime {
             validationErrors.append("End time must be after start time")
         } else {
             let calculatedDuration = endTime.timeIntervalSince(startTime)
-            
+
             if calculatedDuration < 60 {
                 validationErrors.append("Duration must be at least 1 minute")
             } else if calculatedDuration > 24 * 60 * 60 {
                 validationErrors.append("Duration cannot exceed 24 hours")
             }
         }
-        
+
         // Validate time bounds
         let now = Date()
         let oneYearAgo = Calendar.current.date(byAdding: .year, value: -1, to: now) ?? now
         let oneYearFromNow = Calendar.current.date(byAdding: .year, value: 1, to: now) ?? now
-        
+
         if startTime < oneYearAgo || startTime > oneYearFromNow {
             validationErrors.append("Start time is outside reasonable range")
         }
-        
+
         if endTime < oneYearAgo || endTime > oneYearFromNow {
             validationErrors.append("End time is outside reasonable range")
         }
-        
+
         // Validate project exists if selected
         if let selectedProject = selectedProject {
             if projectManager.getProject(by: selectedProject.id) == nil {
@@ -337,22 +339,22 @@ struct EditTimeEntryView: View {
             }
         }
     }
-    
+
     private func isValidInput() -> Bool {
         return validationErrors.isEmpty && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-    
+
     private func updateDurationFromTimes() {
         duration = max(0, endTime.timeIntervalSince(startTime))
     }
-    
+
     private func updateEndTimeFromDuration() {
         endTime = startTime.addingTimeInterval(duration)
     }
-    
+
     private func formatDuration(_ duration: TimeInterval) -> String {
         let totalMinutes = Int(duration / 60)
-        
+
         if totalMinutes < 1 {
             return "<1m"
         } else if totalMinutes < 60 {
@@ -367,40 +369,40 @@ struct EditTimeEntryView: View {
             }
         }
     }
-    
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short
         return formatter.string(from: date)
     }
-    
+
     private func getPreviousEndTime() -> Date {
         // Get the most recent time entry's end time (excluding current one), or start of day if none
         let recentEntries = timeEntryManager.timeEntries.filter { $0.id != timeEntry.id }.prefix(5)
         if let lastEntry = recentEntries.first {
             return lastEntry.endTime
         }
-        
+
         // Default to start of current day
         return Calendar.current.startOfDay(for: Date())
     }
-    
+
     private func updateTimeEntry() {
-        guard isValidInput() && hasChanges() else {
+        guard isValidInput(), hasChanges() else {
             errorMessage = "No changes to save or validation errors present"
             return
         }
-        
+
         isUpdating = true
         errorMessage = nil
-        
+
         Task {
             do {
                 let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
                 let finalNotes = trimmedNotes.isEmpty ? nil : trimmedNotes
-                
+
                 try await timeEntryManager.updateTimeEntry(
                     timeEntry,
                     projectId: selectedProject?.id,
@@ -409,12 +411,12 @@ struct EditTimeEntryView: View {
                     startTime: startTime,
                     endTime: endTime
                 )
-                
+
                 await MainActor.run {
                     logger.info("Successfully updated time entry: \(trimmedTitle)")
                     isPresented = false
                 }
-                
+
             } catch {
                 await MainActor.run {
                     isUpdating = false
@@ -439,7 +441,7 @@ struct EditTimeEntryView: View {
         startTime: Date().addingTimeInterval(-3600),
         endTime: Date()
     )
-    
+
     EditTimeEntryView(isPresented: .constant(true), timeEntry: sampleTimeEntry)
         .environmentObject(AppState())
         .environmentObject(ProjectManager.shared)

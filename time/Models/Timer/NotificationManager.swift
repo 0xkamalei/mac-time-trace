@@ -35,7 +35,7 @@ class NotificationManager: ObservableObject {
         case inactivityReminder(hours: Double)
         case dailySummary(totalHours: Double, topProjects: [String])
         case weeklySummary(totalHours: Double, topProjects: [String])
-        
+
         var description: String {
             switch self {
             case .timerCompleted:

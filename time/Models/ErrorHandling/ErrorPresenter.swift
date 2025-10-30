@@ -6,18 +6,18 @@ import SwiftUI
 @MainActor
 class ErrorPresenter: ObservableObject {
     static let shared = ErrorPresenter()
-    
+
     @Published var currentAlert: ErrorAlert?
     @Published var errorBanner: ErrorBanner?
     @Published var errorHistory: [PresentedError] = []
-    
+
     private let logger = ErrorLogger.shared
     private let recoveryManager = ErrorRecoveryManager.shared
-    
+
     private init() {}
-    
+
     // MARK: - Error Presentation
-    
+
     func presentError(
         _ error: TimeTrackingError,
         context: ErrorContext,
@@ -29,21 +29,21 @@ class ErrorPresenter: ObservableObject {
             presentationStyle: presentationStyle,
             presentedAt: Date()
         )
-        
+
         errorHistory.insert(presentedError, at: 0)
-        
+
         // Keep only last 50 presented errors
         if errorHistory.count > 50 {
             errorHistory.removeLast()
         }
-        
+
         // Log the error
         logger.logError(error, context: context)
-        
+
         // Determine presentation method
-        let actualStyle = presentationStyle == .automatic ? 
+        let actualStyle = presentationStyle == .automatic ?
             determineOptimalPresentationStyle(for: error) : presentationStyle
-        
+
         switch actualStyle {
         case .alert:
             presentAlert(for: presentedError)
@@ -57,7 +57,7 @@ class ErrorPresenter: ObservableObject {
             break
         }
     }
-    
+
     private func determineOptimalPresentationStyle(for error: TimeTrackingError) -> ErrorPresentationStyle {
         switch error.severity {
         case .critical, .high:
@@ -68,7 +68,7 @@ class ErrorPresenter: ObservableObject {
             return .silent
         }
     }
-    
+
     private func presentAlert(for presentedError: PresentedError) {
         let alert = ErrorAlert(
             title: getErrorTitle(for: presentedError.error),
@@ -76,10 +76,10 @@ class ErrorPresenter: ObservableObject {
             recoverySuggestion: presentedError.error.recoverySuggestion,
             actions: createErrorActions(for: presentedError)
         )
-        
+
         currentAlert = alert
     }
-    
+
     private func presentBanner(for presentedError: PresentedError) {
         let banner = ErrorBanner(
             message: presentedError.error.localizedDescription,
@@ -87,9 +87,9 @@ class ErrorPresenter: ObservableObject {
             actions: createBannerActions(for: presentedError),
             dismissAfter: getBannerDismissTime(for: presentedError.error.severity)
         )
-        
+
         errorBanner = banner
-        
+
         // Auto-dismiss banner after specified time
         if let dismissTime = banner.dismissAfter {
             Task {
@@ -100,7 +100,7 @@ class ErrorPresenter: ObservableObject {
             }
         }
     }
-    
+
     private func getErrorTitle(for error: TimeTrackingError) -> String {
         switch error.category {
         case .activityTracking:
@@ -121,10 +121,10 @@ class ErrorPresenter: ObservableObject {
             return "Network Error"
         }
     }
-    
+
     private func createErrorActions(for presentedError: PresentedError) -> [ErrorAction] {
         var actions: [ErrorAction] = []
-        
+
         // Always include dismiss action
         actions.append(ErrorAction(
             title: "OK",
@@ -133,7 +133,7 @@ class ErrorPresenter: ObservableObject {
                 self?.currentAlert = nil
             }
         ))
-        
+
         // Add recovery action if available
         if let recoverySuggestion = presentedError.error.recoverySuggestion {
             actions.insert(ErrorAction(
@@ -144,7 +144,7 @@ class ErrorPresenter: ObservableObject {
                 }
             ), at: 0)
         }
-        
+
         // Add specific actions based on error type
         switch presentedError.error {
         case .activityTrackingPermissionDenied, .systemPermissionDenied:
@@ -155,7 +155,7 @@ class ErrorPresenter: ObservableObject {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
                 }
             ), at: 0)
-            
+
         case .databaseCorruption, .dataValidationFailure:
             actions.insert(ErrorAction(
                 title: "Repair Data",
@@ -164,7 +164,7 @@ class ErrorPresenter: ObservableObject {
                     self?.repairData(for: presentedError)
                 }
             ), at: 0)
-            
+
         case .timerAlreadyRunning:
             actions.insert(ErrorAction(
                 title: "Stop Current Timer",
@@ -173,17 +173,17 @@ class ErrorPresenter: ObservableObject {
                     self?.stopCurrentTimer()
                 }
             ), at: 0)
-            
+
         default:
             break
         }
-        
+
         return actions
     }
-    
+
     private func createBannerActions(for presentedError: PresentedError) -> [ErrorAction] {
         var actions: [ErrorAction] = []
-        
+
         // Add retry action for retryable errors
         if isRetryable(presentedError.error) {
             actions.append(ErrorAction(
@@ -194,7 +194,7 @@ class ErrorPresenter: ObservableObject {
                 }
             ))
         }
-        
+
         // Add dismiss action
         actions.append(ErrorAction(
             title: "Dismiss",
@@ -203,10 +203,10 @@ class ErrorPresenter: ObservableObject {
                 self?.errorBanner = nil
             }
         ))
-        
+
         return actions
     }
-    
+
     private func getBannerDismissTime(for severity: ErrorSeverity) -> TimeInterval? {
         switch severity {
         case .low:
@@ -217,7 +217,7 @@ class ErrorPresenter: ObservableObject {
             return nil // Don't auto-dismiss
         }
     }
-    
+
     private func isRetryable(_ error: TimeTrackingError) -> Bool {
         switch error {
         case .activityTrackingPermissionDenied, .systemPermissionDenied:
@@ -228,13 +228,13 @@ class ErrorPresenter: ObservableObject {
             return true
         }
     }
-    
+
     // MARK: - Error Actions
-    
+
     private func attemptRecovery(for presentedError: PresentedError) {
         currentAlert = nil
         errorBanner = nil
-        
+
         Task {
             let strategy = RecoveryStrategyFactory.createStrategy(for: presentedError.error)
             let result = await recoveryManager.attemptRecovery(
@@ -242,41 +242,41 @@ class ErrorPresenter: ObservableObject {
                 context: presentedError.context,
                 recoveryStrategy: strategy
             )
-            
+
             switch result {
-            case .success(let attempts):
+            case let .success(attempts):
                 presentSuccessMessage("Problem resolved after \(attempts) attempt(s)")
-            case .failure(let error):
+            case let .failure(error):
                 presentError(
                     TimeTrackingError.systemResourceExhausted,
                     context: ErrorContext(
                         userAction: "Recovery attempt failed",
                         additionalInfo: ["original_error": presentedError.error.localizedDescription,
-                                       "recovery_error": error.localizedDescription]
+                                         "recovery_error": error.localizedDescription]
                     )
                 )
             }
         }
     }
-    
-    private func repairData(for presentedError: PresentedError) {
+
+    private func repairData(for _: PresentedError) {
         currentAlert = nil
-        
+
         Task {
             // Implementation would depend on specific data repair mechanisms
             // For now, show a placeholder success message
             presentSuccessMessage("Data repair completed")
         }
     }
-    
+
     private func stopCurrentTimer() {
         currentAlert = nil
-        
+
         // Implementation would stop the current timer
         // This would typically involve calling TimerManager.shared.stopTimer()
         presentSuccessMessage("Timer stopped")
     }
-    
+
     private func presentSuccessMessage(_ message: String) {
         let banner = ErrorBanner(
             message: message,
@@ -285,9 +285,9 @@ class ErrorPresenter: ObservableObject {
             dismissAfter: 3.0,
             isSuccess: true
         )
-        
+
         errorBanner = banner
-        
+
         Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             if errorBanner?.id == banner.id {
@@ -295,20 +295,20 @@ class ErrorPresenter: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Error History Management
-    
+
     func clearErrorHistory() {
         errorHistory.removeAll()
     }
-    
+
     func getErrorHistory(for category: ErrorCategory? = nil) -> [PresentedError] {
         if let category = category {
             return errorHistory.filter { $0.error.category == category }
         }
         return errorHistory
     }
-    
+
     func dismissCurrentError() {
         currentAlert = nil
         errorBanner = nil
@@ -332,12 +332,13 @@ struct ErrorBanner: Identifiable {
     let actions: [ErrorAction]
     let dismissAfter: TimeInterval?
     let isSuccess: Bool
-    
-    init(message: String, 
-         severity: ErrorSeverity, 
-         actions: [ErrorAction], 
-         dismissAfter: TimeInterval? = nil, 
-         isSuccess: Bool = false) {
+
+    init(message: String,
+         severity: ErrorSeverity,
+         actions: [ErrorAction],
+         dismissAfter: TimeInterval? = nil,
+         isSuccess: Bool = false)
+    {
         self.message = message
         self.severity = severity
         self.actions = actions
@@ -377,7 +378,7 @@ struct PresentedError: Identifiable {
 
 struct ErrorAlertModifier: ViewModifier {
     @ObservedObject var errorPresenter = ErrorPresenter.shared
-    
+
     func body(content: Content) -> some View {
         content
             .alert(item: $errorPresenter.currentAlert) { alert in
@@ -391,7 +392,7 @@ struct ErrorAlertModifier: ViewModifier {
                     } ?? .default(Text("OK")) {
                         errorPresenter.currentAlert = nil
                     },
-                    secondaryButton: alert.actions.count > 1 ? 
+                    secondaryButton: alert.actions.count > 1 ?
                         .cancel(Text(alert.actions[1].title)) {
                             alert.actions[1].action()
                         } : .default(Text("OK")) {
@@ -405,20 +406,20 @@ struct ErrorAlertModifier: ViewModifier {
 struct ErrorBannerView: View {
     let banner: ErrorBanner
     let onDismiss: () -> Void
-    
+
     var body: some View {
         HStack {
             Image(systemName: banner.isSuccess ? "checkmark.circle.fill" : iconName)
                 .foregroundColor(banner.isSuccess ? .green : iconColor)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(banner.message)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.primary)
-                
+
                 if !banner.actions.isEmpty {
                     HStack(spacing: 12) {
-                        ForEach(Array(banner.actions.enumerated()), id: \.offset) { index, action in
+                        ForEach(Array(banner.actions.enumerated()), id: \.offset) { _, action in
                             Button(action.title) {
                                 action.action()
                             }
@@ -428,9 +429,9 @@ struct ErrorBannerView: View {
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             Button {
                 onDismiss()
             } label: {
@@ -445,7 +446,7 @@ struct ErrorBannerView: View {
         .cornerRadius(8)
         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
-    
+
     private var iconName: String {
         switch banner.severity {
         case .low:
@@ -456,7 +457,7 @@ struct ErrorBannerView: View {
             return "xmark.circle.fill"
         }
     }
-    
+
     private var iconColor: Color {
         switch banner.severity {
         case .low:
@@ -467,12 +468,12 @@ struct ErrorBannerView: View {
             return .red
         }
     }
-    
+
     private var backgroundColor: Color {
         if banner.isSuccess {
             return Color.green.opacity(0.1)
         }
-        
+
         switch banner.severity {
         case .low:
             return Color.blue.opacity(0.1)
@@ -482,7 +483,7 @@ struct ErrorBannerView: View {
             return Color.red.opacity(0.1)
         }
     }
-    
+
     private func actionColor(for style: ErrorActionStyle) -> Color {
         switch style {
         case .default:

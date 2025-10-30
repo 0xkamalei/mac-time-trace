@@ -6,37 +6,37 @@ import SwiftUI
 @MainActor
 class ResourceCleanupManager: ObservableObject {
     // MARK: - Singleton
-    
+
     static let shared = ResourceCleanupManager()
-    
+
     // MARK: - Published Properties
-    
-    @Published private(set) var cleanupMetrics: CleanupMetrics = CleanupMetrics()
+
+    @Published private(set) var cleanupMetrics: CleanupMetrics = .init()
     @Published private(set) var isCleanupInProgress: Bool = false
-    
+
     // MARK: - Private Properties
-    
+
     private let logger = Logger(subsystem: "com.time.vscode", category: "ResourceCleanup")
-    
+
     // Resource tracking
     private var trackedResources: [String: TrackedResource] = [:]
-    private var resourceLeakDetector: ResourceLeakDetector = ResourceLeakDetector()
-    
+    private var resourceLeakDetector: ResourceLeakDetector = .init()
+
     // Cleanup scheduling
     private var cleanupTimer: Timer?
     private var emergencyCleanupTimer: Timer?
-    
+
     // Cleanup strategies
     private var cleanupStrategies: [ResourceType: CleanupStrategy] = [:]
-    
+
     // MARK: - Initialization
-    
+
     private init() {
         setupCleanupStrategies()
         startPeriodicCleanup()
         setupMemoryPressureHandling()
     }
-    
+
     deinit {
         // Cannot call async method in deinit, so we invalidate timers directly
         cleanupTimer?.invalidate()
@@ -45,9 +45,9 @@ class ResourceCleanupManager: ObservableObject {
         emergencyCleanupTimer?.invalidate()
         emergencyCleanupTimer = nil
     }
-    
+
     // MARK: - Resource Tracking
-    
+
     /// Registers a resource for tracking and automatic cleanup
     func trackResource<T: AnyObject>(_ resource: T, type: ResourceType, identifier: String, metadata: [String: Any] = [:]) {
         let trackedResource = TrackedResource(
@@ -58,13 +58,13 @@ class ResourceCleanupManager: ObservableObject {
             lastAccessTime: Date(),
             metadata: metadata
         )
-        
+
         trackedResources[identifier] = trackedResource
         resourceLeakDetector.registerResource(identifier, type: type)
-        
+
         logger.debug("Tracking resource: \(identifier) (\(type))")
     }
-    
+
     /// Unregisters a resource from tracking
     func untrackResource(_ identifier: String) async {
         if let resource = trackedResources.removeValue(forKey: identifier) {
@@ -72,36 +72,36 @@ class ResourceCleanupManager: ObservableObject {
             logger.debug("Untracked resource: \(identifier) (\(resource.type))")
         }
     }
-    
+
     /// Updates the last access time for a tracked resource
     func touchResource(_ identifier: String) {
         trackedResources[identifier]?.lastAccessTime = Date()
     }
-    
+
     /// Gets information about a tracked resource
     func getResourceInfo(_ identifier: String) -> TrackedResource? {
         return trackedResources[identifier]
     }
-    
+
     /// Gets all tracked resources of a specific type
     func getTrackedResources(ofType type: ResourceType) -> [TrackedResource] {
         return trackedResources.values.filter { $0.type == type }
     }
-    
+
     // MARK: - Cleanup Operations
-    
+
     /// Performs comprehensive resource cleanup
     func performCleanup(strategy: CleanupLevel = .normal) async {
         guard !isCleanupInProgress else {
             logger.warning("Cleanup already in progress, skipping")
             return
         }
-        
+
         isCleanupInProgress = true
         let startTime = Date()
-        
+
         logger.info("Starting resource cleanup (level: \(strategy))")
-        
+
         defer {
             isCleanupInProgress = false
             let duration = Date().timeIntervalSince(startTime)
@@ -109,13 +109,13 @@ class ResourceCleanupManager: ObservableObject {
             cleanupMetrics.lastCleanupTime = Date()
             logger.info("Resource cleanup completed in \(String(format: "%.2f", duration))s")
         }
-        
+
         var cleanedResources = 0
         var freedMemory = 0
-        
+
         // Clean up deallocated resources
         cleanedResources += cleanupDeallocatedResources()
-        
+
         // Clean up stale resources based on strategy
         let staleResources = identifyStaleResources(for: strategy)
         for resource in staleResources {
@@ -124,35 +124,35 @@ class ResourceCleanupManager: ObservableObject {
                 freedMemory += estimateResourceMemoryUsage(resource)
             }
         }
-        
+
         // Perform type-specific cleanup
         for (type, cleanupStrategy) in cleanupStrategies {
             let typeResources = getTrackedResources(ofType: type)
             let cleaned = await cleanupStrategy.cleanup(typeResources, level: strategy)
             cleanedResources += cleaned
         }
-        
+
         // Update metrics
         cleanupMetrics.totalCleanupOperations += 1
         cleanupMetrics.resourcesCleaned += cleanedResources
         cleanupMetrics.estimatedMemoryFreed += freedMemory
-        
+
         // Check for potential leaks
         detectPotentialLeaks()
-        
+
         logger.info("Cleanup completed: \(cleanedResources) resources cleaned, ~\(freedMemory) bytes freed")
     }
-    
+
     /// Performs emergency cleanup under memory pressure
     func performEmergencyCleanup() async {
         logger.warning("Performing emergency resource cleanup")
-        
+
         await performCleanup(strategy: .aggressive)
-        
+
         // Additional emergency measures
         await forceGarbageCollection()
         await clearNonEssentialCaches()
-        
+
         // Notify other components
         NotificationCenter.default.post(
             name: .emergencyCleanupPerformed,
@@ -160,26 +160,26 @@ class ResourceCleanupManager: ObservableObject {
             userInfo: ["metrics": cleanupMetrics]
         )
     }
-    
+
     private func cleanupDeallocatedResources() -> Int {
         let initialCount = trackedResources.count
-        
+
         trackedResources = trackedResources.compactMapValues { resource in
             resource.resource != nil ? resource : nil
         }
-        
+
         let cleanedCount = initialCount - trackedResources.count
-        
+
         if cleanedCount > 0 {
             logger.debug("Cleaned up \(cleanedCount) deallocated resources")
         }
-        
+
         return cleanedCount
     }
-    
+
     private func identifyStaleResources(for level: CleanupLevel) -> [TrackedResource] {
         let cutoffTime: TimeInterval
-        
+
         switch level {
         case .light:
             cutoffTime = -3600 // 1 hour
@@ -190,14 +190,14 @@ class ResourceCleanupManager: ObservableObject {
         case .emergency:
             cutoffTime = -300 // 5 minutes
         }
-        
+
         let threshold = Date().addingTimeInterval(cutoffTime)
-        
+
         return trackedResources.values.filter { resource in
             resource.lastAccessTime < threshold && resource.type.isCleanupEligible
         }
     }
-    
+
     private func cleanupResource(_ resource: TrackedResource) async -> Bool {
         guard let cleanupStrategy = cleanupStrategies[resource.type] else {
             // Default cleanup - just remove from tracking
@@ -207,7 +207,7 @@ class ResourceCleanupManager: ObservableObject {
 
         return await cleanupStrategy.cleanupSingle(resource)
     }
-    
+
     private func estimateResourceMemoryUsage(_ resource: TrackedResource) -> Int {
         // Rough estimation based on resource type
         switch resource.type {
@@ -227,22 +227,22 @@ class ResourceCleanupManager: ObservableObject {
             return 10 * 1024 // 10KB estimate
         }
     }
-    
+
     // MARK: - Leak Detection
-    
+
     private func detectPotentialLeaks() {
         let leaks = resourceLeakDetector.detectLeaks(trackedResources.values.map { $0 })
-        
+
         if !leaks.isEmpty {
             logger.warning("Potential resource leaks detected: \(leaks.count)")
-            
+
             for leak in leaks {
                 logger.warning("Potential leak: \(leak.identifier) (\(leak.type)) - age: \(leak.age)s")
             }
-            
+
             // Update metrics
             cleanupMetrics.potentialLeaksDetected += leaks.count
-            
+
             // Notify about leaks
             NotificationCenter.default.post(
                 name: .resourceLeaksDetected,
@@ -251,9 +251,9 @@ class ResourceCleanupManager: ObservableObject {
             )
         }
     }
-    
+
     // MARK: - Cleanup Strategies Setup
-    
+
     private func setupCleanupStrategies() {
         cleanupStrategies[.image] = ImageCleanupStrategy()
         cleanupStrategies[.cache] = CacheCleanupStrategy()
@@ -263,9 +263,9 @@ class ResourceCleanupManager: ObservableObject {
         cleanupStrategies[.observer] = ObserverCleanupStrategy()
         cleanupStrategies[.other] = DefaultCleanupStrategy()
     }
-    
+
     // MARK: - Periodic Cleanup
-    
+
     private func startPeriodicCleanup() {
         // Regular cleanup every 10 minutes
         cleanupTimer = Timer.scheduledTimer(withTimeInterval: 600.0, repeats: true) { [weak self] _ in
@@ -273,20 +273,20 @@ class ResourceCleanupManager: ObservableObject {
                 await self?.performCleanup(strategy: .light)
             }
         }
-        
+
         logger.info("Periodic cleanup started")
     }
-    
+
     private func stopPeriodicCleanup() {
         cleanupTimer?.invalidate()
         cleanupTimer = nil
-        
+
         emergencyCleanupTimer?.invalidate()
         emergencyCleanupTimer = nil
-        
+
         logger.info("Periodic cleanup stopped")
     }
-    
+
     private func setupMemoryPressureHandling() {
         NotificationCenter.default.addObserver(
             forName: .memoryPressureDetected,
@@ -298,9 +298,9 @@ class ResourceCleanupManager: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Emergency Operations
-    
+
     private func forceGarbageCollection() async {
         // Force autorelease pool drain
         await withCheckedContinuation { continuation in
@@ -311,10 +311,10 @@ class ResourceCleanupManager: ObservableObject {
                 continuation.resume()
             }
         }
-        
+
         logger.debug("Forced garbage collection")
     }
-    
+
     private func clearNonEssentialCaches() async {
         // Clear image caches
         let imageResources = getTrackedResources(ofType: .image)
@@ -332,23 +332,23 @@ class ResourceCleanupManager: ObservableObject {
 
         logger.debug("Cleared non-essential caches")
     }
-    
+
     // MARK: - Metrics and Monitoring
-    
+
     /// Gets current cleanup metrics
     func getCleanupMetrics() -> CleanupMetrics {
         return cleanupMetrics
     }
-    
+
     /// Gets resource usage statistics
     func getResourceStatistics() -> ResourceStatistics {
         let resourceCounts = Dictionary(grouping: trackedResources.values) { $0.type }
             .mapValues { $0.count }
-        
+
         let totalMemoryEstimate = trackedResources.values
             .map { estimateResourceMemoryUsage($0) }
             .reduce(0, +)
-        
+
         return ResourceStatistics(
             totalTrackedResources: trackedResources.count,
             resourceCountsByType: resourceCounts,
@@ -357,21 +357,21 @@ class ResourceCleanupManager: ObservableObject {
             averageResourceAge: getAverageResourceAge()
         )
     }
-    
+
     private func getOldestResourceAge() -> TimeInterval {
         guard let oldestResource = trackedResources.values.min(by: { $0.creationTime < $1.creationTime }) else {
             return 0
         }
         return Date().timeIntervalSince(oldestResource.creationTime)
     }
-    
+
     private func getAverageResourceAge() -> TimeInterval {
         guard !trackedResources.isEmpty else { return 0 }
-        
+
         let totalAge = trackedResources.values
             .map { Date().timeIntervalSince($0.creationTime) }
             .reduce(0, +)
-        
+
         return totalAge / Double(trackedResources.count)
     }
 }
@@ -402,15 +402,15 @@ class TrackedResource {
     let creationTime: Date
     var lastAccessTime: Date
     let metadata: [String: Any]
-    
+
     var isEssential: Bool {
         return metadata["essential"] as? Bool ?? false
     }
-    
+
     var age: TimeInterval {
         return Date().timeIntervalSince(creationTime)
     }
-    
+
     init(resource: AnyObject, type: ResourceType, identifier: String, creationTime: Date, lastAccessTime: Date, metadata: [String: Any]) {
         self.resource = resource
         self.type = type
@@ -478,18 +478,18 @@ protocol CleanupStrategy {
 }
 
 class ImageCleanupStrategy: CleanupStrategy {
-    func cleanup(_ resources: [TrackedResource], level: CleanupLevel) async -> Int {
+    func cleanup(_ resources: [TrackedResource], level _: CleanupLevel) async -> Int {
         var cleaned = 0
-        
+
         for resource in resources {
             if await cleanupSingle(resource) {
                 cleaned += 1
             }
         }
-        
+
         return cleaned
     }
-    
+
     func cleanupSingle(_ resource: TrackedResource) async -> Bool {
         // Clear image from memory if not essential
         if !resource.isEssential {
@@ -501,18 +501,18 @@ class ImageCleanupStrategy: CleanupStrategy {
 }
 
 class CacheCleanupStrategy: CleanupStrategy {
-    func cleanup(_ resources: [TrackedResource], level: CleanupLevel) async -> Int {
+    func cleanup(_ resources: [TrackedResource], level _: CleanupLevel) async -> Int {
         var cleaned = 0
-        
+
         for resource in resources {
             if await cleanupSingle(resource) {
                 cleaned += 1
             }
         }
-        
+
         return cleaned
     }
-    
+
     func cleanupSingle(_ resource: TrackedResource) async -> Bool {
         // Clear cache entry
         await ResourceCleanupManager.shared.untrackResource(resource.identifier)
@@ -521,18 +521,18 @@ class CacheCleanupStrategy: CleanupStrategy {
 }
 
 class FileCleanupStrategy: CleanupStrategy {
-    func cleanup(_ resources: [TrackedResource], level: CleanupLevel) async -> Int {
+    func cleanup(_ resources: [TrackedResource], level _: CleanupLevel) async -> Int {
         var cleaned = 0
-        
+
         for resource in resources {
             if await cleanupSingle(resource) {
                 cleaned += 1
             }
         }
-        
+
         return cleaned
     }
-    
+
     func cleanupSingle(_ resource: TrackedResource) async -> Bool {
         // Delete temporary file
         if let filePath = resource.metadata["filePath"] as? String {
@@ -544,18 +544,18 @@ class FileCleanupStrategy: CleanupStrategy {
 }
 
 class NetworkCleanupStrategy: CleanupStrategy {
-    func cleanup(_ resources: [TrackedResource], level: CleanupLevel) async -> Int {
+    func cleanup(_ resources: [TrackedResource], level _: CleanupLevel) async -> Int {
         var cleaned = 0
-        
+
         for resource in resources {
             if await cleanupSingle(resource) {
                 cleaned += 1
             }
         }
-        
+
         return cleaned
     }
-    
+
     func cleanupSingle(_ resource: TrackedResource) async -> Bool {
         // Close network connection if stale
         if resource.age > 300 { // 5 minutes
@@ -567,18 +567,18 @@ class NetworkCleanupStrategy: CleanupStrategy {
 }
 
 class TimerCleanupStrategy: CleanupStrategy {
-    func cleanup(_ resources: [TrackedResource], level: CleanupLevel) async -> Int {
+    func cleanup(_ resources: [TrackedResource], level _: CleanupLevel) async -> Int {
         var cleaned = 0
-        
+
         for resource in resources {
             if await cleanupSingle(resource) {
                 cleaned += 1
             }
         }
-        
+
         return cleaned
     }
-    
+
     func cleanupSingle(_ resource: TrackedResource) async -> Bool {
         // Invalidate timer if resource is deallocated
         if resource.resource == nil {
@@ -590,18 +590,18 @@ class TimerCleanupStrategy: CleanupStrategy {
 }
 
 class ObserverCleanupStrategy: CleanupStrategy {
-    func cleanup(_ resources: [TrackedResource], level: CleanupLevel) async -> Int {
+    func cleanup(_ resources: [TrackedResource], level _: CleanupLevel) async -> Int {
         var cleaned = 0
-        
+
         for resource in resources {
             if await cleanupSingle(resource) {
                 cleaned += 1
             }
         }
-        
+
         return cleaned
     }
-    
+
     func cleanupSingle(_ resource: TrackedResource) async -> Bool {
         // Remove observer if resource is deallocated
         if resource.resource == nil {
@@ -613,18 +613,18 @@ class ObserverCleanupStrategy: CleanupStrategy {
 }
 
 class DefaultCleanupStrategy: CleanupStrategy {
-    func cleanup(_ resources: [TrackedResource], level: CleanupLevel) async -> Int {
+    func cleanup(_ resources: [TrackedResource], level _: CleanupLevel) async -> Int {
         var cleaned = 0
-        
+
         for resource in resources {
             if await cleanupSingle(resource) {
                 cleaned += 1
             }
         }
-        
+
         return cleaned
     }
-    
+
     func cleanupSingle(_ resource: TrackedResource) async -> Bool {
         // Default cleanup - just untrack if deallocated
         if resource.resource == nil {
@@ -639,7 +639,7 @@ class DefaultCleanupStrategy: CleanupStrategy {
 
 class ResourceLeakDetector {
     private var resourceRegistry: [String: ResourceRegistration] = [:]
-    
+
     func registerResource(_ identifier: String, type: ResourceType) {
         resourceRegistry[identifier] = ResourceRegistration(
             identifier: identifier,
@@ -647,17 +647,17 @@ class ResourceLeakDetector {
             registrationTime: Date()
         )
     }
-    
+
     func unregisterResource(_ identifier: String) {
         resourceRegistry.removeValue(forKey: identifier)
     }
-    
+
     func detectLeaks(_ trackedResources: [TrackedResource]) -> [ResourceLeak] {
         var leaks: [ResourceLeak] = []
-        
+
         for resource in trackedResources {
             // Check for long-lived resources that might be leaks
-            if resource.age > 3600 && resource.resource != nil { // 1 hour
+            if resource.age > 3600, resource.resource != nil { // 1 hour
                 let leak = ResourceLeak(
                     identifier: resource.identifier,
                     type: resource.type,
@@ -667,7 +667,7 @@ class ResourceLeakDetector {
                 leaks.append(leak)
             }
         }
-        
+
         return leaks
     }
 }

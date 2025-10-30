@@ -18,7 +18,7 @@ class TimeEntryManager: ObservableObject {
 
     private var modelContext: ModelContext?
     private let logger = Logger(subsystem: "com.time-vscode.TimeEntryManager", category: "TimeEntryTracking")
-    
+
     // Debouncing for notifications
     private var notificationDebounceTimer: Timer?
     private let notificationDebounceInterval: TimeInterval = 0.3
@@ -29,7 +29,7 @@ class TimeEntryManager: ObservableObject {
     private init() {
         timeEntries = []
     }
-    
+
     deinit {
         notificationDebounceTimer?.invalidate()
     }
@@ -99,29 +99,29 @@ class TimeEntryManager: ObservableObject {
     private func notifyTimeEntriesChanged(operation: String = "unknown", timeEntryId: String? = nil) {
         // Always send objectWillChange immediately for reactive UI
         objectWillChange.send()
-        
+
         // Prepare notification user info
         var userInfo: [String: Any] = [
             "timeEntries": timeEntries,
             "timeEntryCount": timeEntries.count,
             "timestamp": Date(),
-            "operation": operation
+            "operation": operation,
         ]
-        
+
         if let timeEntryId = timeEntryId {
             userInfo["timeEntryId"] = timeEntryId
         }
-        
+
         // Store pending notification info
         pendingNotificationUserInfo = userInfo
-        
+
         // Cancel existing timer and start new one for debouncing
         notificationDebounceTimer?.invalidate()
         notificationDebounceTimer = Timer.scheduledTimer(withTimeInterval: notificationDebounceInterval, repeats: false) { [weak self] _ in
             self?.sendDebouncedNotification()
         }
     }
-    
+
     /// Sends the debounced notification
     private func sendDebouncedNotification() {
         NotificationCenter.default.post(
@@ -129,25 +129,25 @@ class TimeEntryManager: ObservableObject {
             object: self,
             userInfo: pendingNotificationUserInfo
         )
-        
+
         logger.info("Debounced time entry change notification sent - \(self.timeEntries.count) entries")
         pendingNotificationUserInfo.removeAll()
     }
-    
+
     /// Sends immediate notification for time entry deletion
     private func notifyTimeEntryDeleted(timeEntryId: String, batchOperation: Bool = false) {
         let userInfo: [String: Any] = [
             "timeEntryId": timeEntryId,
             "timestamp": Date(),
-            "batchOperation": batchOperation
+            "batchOperation": batchOperation,
         ]
-        
+
         NotificationCenter.default.post(
             name: .timeEntryWasDeleted,
             object: nil,
             userInfo: userInfo
         )
-        
+
         logger.info("Time entry deletion notification sent - ID: \(timeEntryId)")
     }
 
@@ -547,13 +547,13 @@ class TimeEntryManager: ObservableObject {
         guard !timeEntryData.isEmpty else {
             return []
         }
-        
+
         guard let modelContext = modelContext else {
             throw TimeEntryError.persistenceFailure("ModelContext not available")
         }
-        
+
         var createdEntries: [TimeEntry] = []
-        
+
         // Validate all entries first
         for data in timeEntryData {
             let validationResult = validateTimeEntryInput(
@@ -563,12 +563,12 @@ class TimeEntryManager: ObservableObject {
                 startTime: data.startTime,
                 endTime: data.endTime
             )
-            
+
             if case let .failure(error) = validationResult {
                 throw error
             }
         }
-        
+
         // Create all entries
         for data in timeEntryData {
             let timeEntry = TimeEntry(
@@ -578,26 +578,26 @@ class TimeEntryManager: ObservableObject {
                 startTime: data.startTime,
                 endTime: data.endTime
             )
-            
+
             modelContext.insert(timeEntry)
             createdEntries.append(timeEntry)
         }
-        
+
         // Single save operation for all entries
         try await saveTimeEntries()
-        
+
         // Add to local array and sort
         timeEntries.append(contentsOf: createdEntries)
         timeEntries.sort { $0.startTime > $1.startTime }
-        
+
         // Notify observers
         notifyTimeEntriesChanged(operation: "batchCreate")
-        
+
         logger.info("Created \(createdEntries.count) time entries in batch operation")
-        
+
         return createdEntries
     }
-    
+
     /// Updates multiple time entries in a single batch operation
     /// - Parameter updates: Array of tuples containing time entry and update data
     /// - Throws: TimeEntryError if batch update fails
@@ -605,19 +605,19 @@ class TimeEntryManager: ObservableObject {
         guard !updates.isEmpty else {
             return
         }
-        
+
         // Validate all updates first
         for update in updates {
             guard timeEntries.contains(where: { $0.id == update.timeEntry.id }) else {
                 throw TimeEntryError.validationFailed("Time entry not found: \(update.timeEntry.id)")
             }
-            
+
             let updatedProjectId = update.projectId ?? update.timeEntry.projectId
             let updatedTitle = update.title ?? update.timeEntry.title
             let updatedNotes = update.notes ?? update.timeEntry.notes
             let updatedStartTime = update.startTime ?? update.timeEntry.startTime
             let updatedEndTime = update.endTime ?? update.timeEntry.endTime
-            
+
             let validationResult = validateTimeEntryInput(
                 projectId: updatedProjectId,
                 title: updatedTitle,
@@ -625,12 +625,12 @@ class TimeEntryManager: ObservableObject {
                 startTime: updatedStartTime,
                 endTime: updatedEndTime
             )
-            
+
             if case let .failure(error) = validationResult {
                 throw error
             }
         }
-        
+
         // Apply all updates
         for update in updates {
             if let projectId = update.projectId {
@@ -648,26 +648,26 @@ class TimeEntryManager: ObservableObject {
             if let endTime = update.endTime {
                 update.timeEntry.endTime = endTime
             }
-            
+
             update.timeEntry.recalculateDuration()
             update.timeEntry.markAsUpdated()
         }
-        
+
         // Single save operation for all updates
         try await saveTimeEntries()
-        
+
         // Re-sort if any times changed
         let hasTimeChanges = updates.contains { $0.startTime != nil || $0.endTime != nil }
         if hasTimeChanges {
             timeEntries.sort { $0.startTime > $1.startTime }
         }
-        
+
         // Notify observers
         notifyTimeEntriesChanged(operation: "batchUpdate")
-        
+
         logger.info("Updated \(updates.count) time entries in batch operation")
     }
-    
+
     /// Deletes multiple time entries in a single batch operation
     /// - Parameter timeEntries: Array of time entries to delete
     /// - Throws: TimeEntryError if batch deletion fails
@@ -675,13 +675,13 @@ class TimeEntryManager: ObservableObject {
         guard !timeEntriesToDelete.isEmpty else {
             return
         }
-        
+
         guard let modelContext = modelContext else {
             throw TimeEntryError.persistenceFailure("ModelContext not available")
         }
-        
+
         var deletedIds: [UUID] = []
-        
+
         // Remove from SwiftData context
         for timeEntry in timeEntriesToDelete {
             if let index = timeEntries.firstIndex(where: { $0.id == timeEntry.id }) {
@@ -690,27 +690,27 @@ class TimeEntryManager: ObservableObject {
                 deletedIds.append(targetEntry.id)
             }
         }
-        
+
         // Single save operation for all deletions
         try await saveTimeEntries()
-        
+
         // Remove from local array
         timeEntries.removeAll { entry in
             deletedIds.contains(entry.id)
         }
-        
+
         // Send batch deletion notification
         let firstDeletedId = deletedIds.first?.uuidString ?? "batch"
         notifyTimeEntryDeleted(timeEntryId: firstDeletedId, batchOperation: true)
-        
+
         // Notify observers
         notifyTimeEntriesChanged(operation: "batchDelete")
-        
+
         logger.info("Deleted \(deletedIds.count) time entries in batch operation")
     }
-    
+
     // MARK: - Query Optimization and Pagination
-    
+
     /// Loads time entries with pagination support for large datasets
     /// - Parameters:
     ///   - offset: Number of entries to skip
@@ -730,32 +730,32 @@ class TimeEntryManager: ObservableObject {
         guard let modelContext = modelContext else {
             throw TimeEntryError.persistenceFailure("ModelContext not available")
         }
-        
+
         var descriptor = FetchDescriptor<TimeEntry>(
             sortBy: [SortDescriptor(\.startTime, order: .reverse)]
         )
-        
+
         // Build predicate for filtering
         var predicates: [Predicate<TimeEntry>] = []
-        
+
         if let projectId = projectId {
             predicates.append(#Predicate<TimeEntry> { entry in
                 entry.projectId == projectId
             })
         }
-        
+
         if let startDate = startDate {
             predicates.append(#Predicate<TimeEntry> { entry in
                 entry.startTime >= startDate
             })
         }
-        
+
         if let endDate = endDate {
             predicates.append(#Predicate<TimeEntry> { entry in
                 entry.endTime <= endDate
             })
         }
-        
+
         if !predicates.isEmpty {
             descriptor.predicate = predicates.reduce(predicates[0]) { result, predicate in
                 #Predicate<TimeEntry> { entry in
@@ -763,10 +763,10 @@ class TimeEntryManager: ObservableObject {
                 }
             }
         }
-        
+
         descriptor.fetchOffset = offset
         descriptor.fetchLimit = limit
-        
+
         do {
             let paginatedEntries = try modelContext.fetch(descriptor)
             logger.info("Loaded \(paginatedEntries.count) time entries (offset: \(offset), limit: \(limit))")
@@ -776,7 +776,7 @@ class TimeEntryManager: ObservableObject {
             throw TimeEntryError.persistenceFailure("Failed to load paginated time entries: \(error.localizedDescription)")
         }
     }
-    
+
     /// Gets the total count of time entries matching the given criteria
     /// - Parameters:
     ///   - projectId: Optional project ID to filter by
@@ -792,30 +792,30 @@ class TimeEntryManager: ObservableObject {
         guard let modelContext = modelContext else {
             throw TimeEntryError.persistenceFailure("ModelContext not available")
         }
-        
+
         var descriptor = FetchDescriptor<TimeEntry>()
-        
+
         // Build predicate for filtering (same as pagination method)
         var predicates: [Predicate<TimeEntry>] = []
-        
+
         if let projectId = projectId {
             predicates.append(#Predicate<TimeEntry> { entry in
                 entry.projectId == projectId
             })
         }
-        
+
         if let startDate = startDate {
             predicates.append(#Predicate<TimeEntry> { entry in
                 entry.startTime >= startDate
             })
         }
-        
+
         if let endDate = endDate {
             predicates.append(#Predicate<TimeEntry> { entry in
                 entry.endTime <= endDate
             })
         }
-        
+
         if !predicates.isEmpty {
             descriptor.predicate = predicates.reduce(predicates[0]) { result, predicate in
                 #Predicate<TimeEntry> { entry in
@@ -823,7 +823,7 @@ class TimeEntryManager: ObservableObject {
                 }
             }
         }
-        
+
         do {
             let entries = try modelContext.fetch(descriptor)
             return entries.count
@@ -832,7 +832,7 @@ class TimeEntryManager: ObservableObject {
             throw TimeEntryError.persistenceFailure("Failed to count time entries: \(error.localizedDescription)")
         }
     }
-    
+
     /// Optimized query for getting time entries grouped by project
     /// - Parameters:
     ///   - startDate: Optional start date filter
@@ -849,13 +849,13 @@ class TimeEntryManager: ObservableObject {
             startDate: startDate,
             endDate: endDate
         )
-        
+
         let grouped = Dictionary(grouping: entries) { $0.projectId }
         logger.info("Grouped \(entries.count) time entries by project into \(grouped.count) groups")
-        
+
         return grouped
     }
-    
+
     // MARK: - Error Handling and Recovery
 
     /// Performs retry logic for failed operations
@@ -940,16 +940,16 @@ class TimeEntryManager: ObservableObject {
 
         return false
     }
-    
+
     // MARK: - Data Conflict Resolution Support
-    
+
     /// Get all time entries from the database for conflict resolution
     func getAllTimeEntries() async -> [TimeEntry] {
         guard let modelContext = modelContext else {
             logger.error("No model context available for getAllTimeEntries")
             return []
         }
-        
+
         do {
             let descriptor = FetchDescriptor<TimeEntry>(
                 sortBy: [SortDescriptor(\.startTime, order: .reverse)]
@@ -962,21 +962,21 @@ class TimeEntryManager: ObservableObject {
             return []
         }
     }
-    
+
     /// Update a time entry for conflict resolution
     func updateTimeEntry(_ timeEntry: TimeEntry) async {
         guard let modelContext = modelContext else {
             logger.error("No model context available for updateTimeEntry")
             return
         }
-        
+
         do {
             let validationResult = validateTimeEntry(timeEntry)
-            if case .failure(let error) = validationResult {
+            if case let .failure(error) = validationResult {
                 logger.error("Time entry validation failed: \(error.localizedDescription)")
                 return
             }
-            
+
             timeEntry.markAsUpdated()
             try modelContext.save()
             logger.info("Updated time entry: \(timeEntry.title)")
@@ -984,21 +984,21 @@ class TimeEntryManager: ObservableObject {
             logger.error("Failed to update time entry: \(error.localizedDescription)")
         }
     }
-    
+
     /// Delete a time entry for conflict resolution
     func deleteTimeEntryWithoutThrowing(_ timeEntry: TimeEntry) async {
         guard let modelContext = modelContext else {
             logger.error("No model context available for deleteTimeEntry")
             return
         }
-        
+
         do {
             modelContext.delete(timeEntry)
             try modelContext.save()
-            
+
             // Remove from local array if present
             timeEntries.removeAll { $0.id == timeEntry.id }
-            
+
             logger.info("Deleted time entry: \(timeEntry.title)")
         } catch {
             logger.error("Failed to delete time entry: \(error.localizedDescription)")

@@ -78,9 +78,9 @@ final class TimeEntry {
         createdAt = Date()
         updatedAt = Date()
     }
-    
+
     // Convenience initializer with string ID and isManual flag
-    convenience init(id: String, startTime: Date, endTime: Date, projectID: String?, title: String, notes: String?, isManual: Bool) {
+    convenience init(id: String, startTime: Date, endTime: Date, projectID: String?, title: String, notes: String?, isManual _: Bool) {
         self.init(
             projectId: projectID,
             title: title,
@@ -306,7 +306,7 @@ enum TimeEntryError: LocalizedError {
             return "Invalid time entry: \(message)"
         }
     }
-    
+
     var recoverySuggestion: String? {
         switch self {
         case .invalidTimeRange:
