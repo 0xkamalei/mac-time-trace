@@ -776,7 +776,7 @@ struct ProjectIntegrationTests {
         let initialCount = manager.projectTree.count
         _ = try await manager.createProject(name: "New", color: .blue)
         
-        #expect(manager.projectTree.count == initialCount + 1)
+        XCTAssertEqual(manager.projectTree.count, initialCount + 1)
     }
     
     @Test("deleting project updates project tree")
@@ -788,6 +788,6 @@ struct ProjectIntegrationTests {
         
         try await manager.deleteProject(project)
         
-        #expect(manager.projectTree.count == initialCount - 1)
+        XCTAssertEqual(manager.projectTree.count, initialCount - 1)
     }
 }

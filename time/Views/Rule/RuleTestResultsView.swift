@@ -3,7 +3,7 @@ import SwiftUI
 struct RuleTestResultsView: View {
     let testResults: RuleTestResult
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -18,10 +18,10 @@ struct RuleTestResultsView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         Spacer()
                     }
-                    
+
                     // Statistics Cards
                     HStack(spacing: 16) {
                         StatCard(
@@ -29,19 +29,19 @@ struct RuleTestResultsView: View {
                             value: "\(testResults.matchingActivities.count)",
                             color: .blue
                         )
-                        
+
                         StatCard(
                             title: "Match Rate",
                             value: "\(String(format: "%.1f", testResults.matchPercentage))%",
                             color: .green
                         )
-                        
+
                         StatCard(
                             title: "Total Time",
                             value: formatDuration(testResults.totalDuration),
                             color: .orange
                         )
-                        
+
                         StatCard(
                             title: "Avg Duration",
                             value: formatDuration(testResults.averageDuration),
@@ -51,20 +51,20 @@ struct RuleTestResultsView: View {
                 }
                 .padding()
                 .background(Color(NSColor.controlBackgroundColor))
-                
+
                 Divider()
-                
+
                 // Matching Activities List
                 if testResults.matchingActivities.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 48))
                             .foregroundColor(.secondary)
-                        
+
                         Text("No Matching Activities")
                             .font(.title3)
                             .fontWeight(.medium)
-                        
+
                         Text("This rule didn't match any activities in the test period.")
                             .font(.body)
                             .foregroundColor(.secondary)
@@ -88,11 +88,11 @@ struct RuleTestResultsView: View {
             }
         }
     }
-    
+
     private func formatDuration(_ duration: TimeInterval) -> String {
         let hours = Int(duration) / 3600
         let minutes = (Int(duration) % 3600) / 60
-        
+
         if hours > 0 {
             return "\(hours)h \(minutes)m"
         } else {
@@ -107,14 +107,14 @@ struct StatCard: View {
     let title: String
     let value: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Text(value)
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(color)
-            
+
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -130,7 +130,7 @@ struct StatCard: View {
 
 struct ActivityRowView: View {
     let activity: Activity
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // App Icon Placeholder
@@ -142,12 +142,12 @@ struct ActivityRowView: View {
                         .font(.caption)
                         .fontWeight(.medium)
                 )
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(activity.appName)
                     .font(.headline)
                     .lineLimit(1)
-                
+
                 if let windowTitle = activity.windowTitle, !windowTitle.isEmpty {
                     Text(windowTitle)
                         .font(.subheadline)
@@ -159,27 +159,27 @@ struct ActivityRowView: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
                 }
-                
+
                 HStack {
                     Text(activity.startTime, style: .time)
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Text("•")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Text(formatDuration(activity.calculatedDuration))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Spacer()
         }
         .padding(.vertical, 4)
     }
-    
+
     private func formatDuration(_ duration: TimeInterval) -> String {
         let minutes = Int(duration / 60)
         if minutes < 1 {
@@ -200,7 +200,7 @@ struct ActivityRowView: View {
         conditions: [.appName("Xcode", .contains)],
         action: .assignToProject("dev-project")
     )
-    
+
     let sampleActivities = [
         Activity(
             appName: "Xcode",
@@ -219,15 +219,15 @@ struct ActivityRowView: View {
             endTime: Date(),
             icon: "",
             windowTitle: "MyProject - Models.swift"
-        )
+        ),
     ]
-    
+
     let testResults = RuleTestResult(
         rule: sampleRule,
         matchingActivities: sampleActivities,
         totalDuration: 5400,
         matchPercentage: 85.0
     )
-    
+
     return RuleTestResultsView(testResults: testResults)
 }

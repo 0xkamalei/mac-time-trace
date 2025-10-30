@@ -2,33 +2,32 @@ import Foundation
 
 /// Parser for advanced search queries with operators and filters
 class SearchQueryParser {
-    
     // MARK: - Private Properties
-    
+
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
-    
+
     private let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         return formatter
     }()
-    
+
     // MARK: - Public Methods
-    
+
     /// Parses a search query string into structured components
     func parse(_ query: String) -> ParsedQuery {
         var parsedQuery = ParsedQuery()
-        
+
         let tokens = tokenize(query)
         var i = 0
-        
+
         while i < tokens.count {
             let token = tokens[i]
-            
+
             if token.hasPrefix("-") {
                 // Exclude term
                 let term = String(token.dropFirst())
@@ -41,7 +40,7 @@ class SearchQueryParser {
                 if components.count == 2 {
                     let filterType = String(components[0]).lowercased()
                     let filterValue = String(components[1])
-                    
+
                     switch filterType {
                     case "app", "application":
                         parsedQuery.appFilters.append(filterValue)
@@ -86,7 +85,7 @@ class SearchQueryParser {
                 // Start of quoted phrase - collect until closing quote
                 var phrase = String(token.dropFirst())
                 i += 1
-                
+
                 while i < tokens.count {
                     let nextToken = tokens[i]
                     if nextToken.hasSuffix("\"") {
@@ -97,7 +96,7 @@ class SearchQueryParser {
                     }
                     i += 1
                 }
-                
+
                 if !phrase.isEmpty {
                     parsedQuery.textTerms.append(phrase)
                 }
@@ -105,40 +104,40 @@ class SearchQueryParser {
                 // Regular text term
                 parsedQuery.textTerms.append(token)
             }
-            
+
             i += 1
         }
-        
+
         return parsedQuery
     }
-    
+
     /// Validates a search query for syntax errors
     func validate(_ query: String) -> QueryValidationResult {
         let tokens = tokenize(query)
-        
+
         var openQuotes = 0
         var hasValidContent = false
-        
+
         for token in tokens {
             // Check for unmatched quotes
             let quoteCount = token.filter { $0 == "\"" }.count
             openQuotes += quoteCount
-            
+
             // Check for valid content
             if !token.isEmpty && token != "\"" {
                 hasValidContent = true
             }
-            
+
             // Validate filter syntax
             if token.contains(":") {
                 let components = token.split(separator: ":", maxSplits: 1)
                 if components.count != 2 || components[1].isEmpty {
                     return .invalid("Invalid filter syntax: \(token)")
                 }
-                
+
                 let filterType = String(components[0]).lowercased()
                 let filterValue = String(components[1])
-                
+
                 // Validate specific filter types
                 switch filterType {
                 case "after", "before", "on", "since", "until", "date":
@@ -158,27 +157,27 @@ class SearchQueryParser {
                 }
             }
         }
-        
+
         // Check for unmatched quotes
         if openQuotes % 2 != 0 {
             return .invalid("Unmatched quotation marks")
         }
-        
+
         // Check for empty query
         if !hasValidContent {
             return .invalid("Query cannot be empty")
         }
-        
+
         return .valid
     }
-    
+
     // MARK: - Private Helper Methods
-    
+
     private func tokenize(_ query: String) -> [String] {
         var tokens: [String] = []
         var currentToken = ""
         var inQuotes = false
-        
+
         for char in query {
             if char == "\"" {
                 if inQuotes {
@@ -194,7 +193,7 @@ class SearchQueryParser {
                     currentToken += String(char)
                     inQuotes = true
                 }
-            } else if char.isWhitespace && !inQuotes {
+            } else if char.isWhitespace, !inQuotes {
                 if !currentToken.isEmpty {
                     tokens.append(currentToken)
                     currentToken = ""
@@ -203,14 +202,14 @@ class SearchQueryParser {
                 currentToken += String(char)
             }
         }
-        
+
         if !currentToken.isEmpty {
             tokens.append(currentToken)
         }
-        
+
         return tokens
     }
-    
+
     private func parseDate(_ dateString: String) -> Date? {
         // Try various date formats
         let formats = [
@@ -219,9 +218,9 @@ class SearchQueryParser {
             "dd/MM/yyyy",
             "yyyy/MM/dd",
             "MM-dd-yyyy",
-            "dd-MM-yyyy"
+            "dd-MM-yyyy",
         ]
-        
+
         for format in formats {
             let formatter = DateFormatter()
             formatter.dateFormat = format
@@ -229,12 +228,12 @@ class SearchQueryParser {
                 return date
             }
         }
-        
+
         // Try relative dates
         let lowercaseString = dateString.lowercased()
         let calendar = Calendar.current
         let now = Date()
-        
+
         switch lowercaseString {
         case "today":
             return calendar.startOfDay(for: now)
@@ -255,34 +254,35 @@ class SearchQueryParser {
         default:
             break
         }
-        
+
         // Try parsing relative days (e.g., "3d", "1w", "2m")
         if let relativeDays = parseRelativeDays(dateString) {
             return calendar.date(byAdding: .day, value: -relativeDays, to: calendar.startOfDay(for: now))
         }
-        
+
         return nil
     }
-    
+
     private func parseRelativeDays(_ string: String) -> Int? {
         let pattern = #"^(\d+)([dwmy])$"#
         let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive)
         let range = NSRange(location: 0, length: string.count)
-        
+
         guard let match = regex?.firstMatch(in: string, options: [], range: range),
-              match.numberOfRanges == 3 else {
+              match.numberOfRanges == 3
+        else {
             return nil
         }
-        
+
         let numberRange = Range(match.range(at: 1), in: string)!
         let unitRange = Range(match.range(at: 2), in: string)!
-        
+
         guard let number = Int(String(string[numberRange])) else {
             return nil
         }
-        
+
         let unit = String(string[unitRange]).lowercased()
-        
+
         switch unit {
         case "d":
             return number
@@ -296,10 +296,10 @@ class SearchQueryParser {
             return nil
         }
     }
-    
+
     private func parseDuration(_ durationString: String) -> TimeInterval? {
         let lowercaseString = durationString.lowercased()
-        
+
         // Try parsing formats like "1h30m", "90m", "1.5h", "30s"
         let patterns: [(String, (String) -> TimeInterval?)] = [
             (#"^(\d+)h(\d+)m$"#, parseCompoundDuration),
@@ -307,19 +307,19 @@ class SearchQueryParser {
             (#"^(\d+)m$"#, parseIntDuration),
             (#"^(\d+)s$"#, parseIntDuration),
             (#"^(\d+\.?\d*)h$"#, parseDoubleDuration),
-            (#"^(\d+\.?\d*)m$"#, parseDoubleDuration)
+            (#"^(\d+\.?\d*)m$"#, parseDoubleDuration),
         ]
-        
+
         for (pattern, converter) in patterns {
             let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive)
             let range = NSRange(location: 0, length: lowercaseString.count)
-            
+
             if let match = regex?.firstMatch(in: lowercaseString, options: [], range: range) {
                 if match.numberOfRanges == 2 {
                     // Single value pattern
                     let valueRange = Range(match.range(at: 1), in: lowercaseString)!
                     let valueString = String(lowercaseString[valueRange])
-                    
+
                     if let intValue = Int(valueString) {
                         return (converter as? (Int) -> TimeInterval)?(intValue)
                     } else if let doubleValue = Double(valueString) {
@@ -329,24 +329,25 @@ class SearchQueryParser {
                     // Two value pattern (hours and minutes)
                     let value1Range = Range(match.range(at: 1), in: lowercaseString)!
                     let value2Range = Range(match.range(at: 2), in: lowercaseString)!
-                    
+
                     if let value1 = Int(String(lowercaseString[value1Range])),
-                       let value2 = Int(String(lowercaseString[value2Range])) {
+                       let value2 = Int(String(lowercaseString[value2Range]))
+                    {
                         return (converter as? (Int, Int) -> TimeInterval)?(value1, value2)
                     }
                 }
             }
         }
-        
+
         // Try parsing as plain number (assume minutes)
         if let minutes = Int(lowercaseString) {
             return TimeInterval(minutes * 60)
         }
-        
+
         if let minutes = Double(lowercaseString) {
             return TimeInterval(minutes * 60)
         }
-        
+
         return nil
     }
 }
@@ -365,7 +366,8 @@ private func parseCompoundDuration(_ input: String) -> TimeInterval? {
     let components = input.split(separator: Character("m")).joined().split(separator: Character("h"))
     if components.count == 2,
        let h = Int(components[0]),
-       let m = Int(components[1]) {
+       let m = Int(components[1])
+    {
         return TimeInterval(h * 3600 + m * 60)
     }
     return nil

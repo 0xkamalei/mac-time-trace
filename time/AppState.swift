@@ -6,20 +6,20 @@ import os
 @MainActor
 class AppState: ObservableObject {
     // Timer management - now using TimerManager
-    @Published var timerManager: TimerManager = TimerManager()
+    @Published var timerManager: TimerManager = .init()
     @Published var automaticTimeEntryCreation: Bool = true
 
     // Notification and productivity tracking
-    @Published var notificationManager: NotificationManager = NotificationManager()
-    @Published var productivityGoalTracker: ProductivityGoalTracker = ProductivityGoalTracker()
+    @Published var notificationManager: NotificationManager = .init()
+    @Published var productivityGoalTracker: ProductivityGoalTracker = .init()
 
     // Idle detection and recovery management
-    @Published var idleRecoveryManager: IdleRecoveryManager = IdleRecoveryManager.shared
-    
+    @Published var idleRecoveryManager: IdleRecoveryManager = .shared
+
     // Performance monitoring and optimization
-    @Published var performanceMonitor: PerformanceMonitor = PerformanceMonitor.shared
-    @Published var memoryManager: MemoryManager = MemoryManager.shared
-    @Published var databaseOptimizer: DatabasePerformanceOptimizer = DatabasePerformanceOptimizer.shared
+    @Published var performanceMonitor: PerformanceMonitor = .shared
+    @Published var memoryManager: MemoryManager = .shared
+    @Published var databaseOptimizer: DatabasePerformanceOptimizer = .shared
 
     @Published var selectedProject: Project?
     @Published var selectedSidebar: String? = "All Activities"
@@ -36,27 +36,27 @@ class AppState: ObservableObject {
         setupNotificationObservers()
         setupNotificationIntegration()
     }
-    
+
     /// Sets up integration between notification manager and other components
     private func setupNotificationIntegration() {
         // Connect TimerManager with NotificationManager
         timerManager.setNotificationManager(notificationManager)
-        
+
         // Connect ProductivityGoalTracker with NotificationManager
         productivityGoalTracker.setNotificationManager(notificationManager)
-        
+
         // Connect ActivityTracker with NotificationManager (if available)
         ActivityTracker.shared.setNotificationManager(notificationManager)
     }
-    
+
     /// Sets the model context for all managers that need it
     func setModelContext(_ context: ModelContext) {
         timerManager.setModelContext(context)
         productivityGoalTracker.setModelContext(context)
-        
+
         // Initialize performance monitoring components
         databaseOptimizer.setModelContext(context)
-        
+
         // Optimize database on startup
         Task {
             do {
@@ -66,7 +66,7 @@ class AppState: ObservableObject {
                 Logger.appState.error("Database optimization failed during startup: \(error.localizedDescription)")
             }
         }
-        
+
         // Schedule recurring summaries
         productivityGoalTracker.scheduleDailySummary()
         productivityGoalTracker.scheduleWeeklySummary()
@@ -199,20 +199,20 @@ class AppState: ObservableObject {
         do {
             let targetProject = project ?? selectedProject
             let shouldCreateTimeEntry = createTimeEntry ?? automaticTimeEntryCreation
-            
+
             // Update TimerManager's auto-create setting
             timerManager.autoCreateTimeEntry = shouldCreateTimeEntry
-            
+
             try timerManager.startTimer(
                 project: targetProject,
                 title: title,
                 notes: notes,
                 estimatedDuration: timerManager.defaultEstimatedDuration
             )
-            
+
             // Record activity for productivity tracking
             productivityGoalTracker.recordActivity()
-            
+
             Logger.appState.info("Timer started for project: \(targetProject?.name ?? "None")")
         } catch {
             Logger.appState.error("Failed to start timer: \(error.localizedDescription)")
@@ -224,10 +224,10 @@ class AppState: ObservableObject {
     func stopTimer(createTimeEntry: Bool? = nil) async {
         do {
             try await timerManager.stopTimer(createTimeEntry: createTimeEntry)
-            
+
             // Update productivity progress after stopping timer
             productivityGoalTracker.updateProgress()
-            
+
             Logger.appState.info("Timer stopped successfully")
         } catch {
             Logger.appState.error("Failed to stop timer: \(error.localizedDescription)")
@@ -247,7 +247,7 @@ class AppState: ObservableObject {
         guard let activeSession = timerManager.activeSession else { return false }
         return activeSession.projectId == project.id
     }
-    
+
     /// Convenience property to check if any timer is active
     var isTimerActive: Bool {
         return timerManager.isRunning

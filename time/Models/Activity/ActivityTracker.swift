@@ -57,7 +57,7 @@ class ActivityTracker: ObservableObject {
 
     /// Sets the notification manager for tracking status notifications
     func setNotificationManager(_ manager: NotificationManager) {
-        self.notificationManager = manager
+        notificationManager = manager
     }
 
     /// Start tracking app activity with comprehensive initialization
@@ -83,7 +83,7 @@ class ActivityTracker: ObservableObject {
         } catch {
             logger.error("Failed to setup notification observers: \(error.localizedDescription)")
             notificationManager?.sendTrackingStoppedNotification(reason: "Failed to initialize: \(error.localizedDescription)")
-            return  // Just return instead of throwing since the function doesn't throw
+            return // Just return instead of throwing since the function doesn't throw
         }
 
         // Start the underlying ActivityManager
@@ -94,7 +94,7 @@ class ActivityTracker: ObservableObject {
 
         isTracking = true
         logger.info("ActivityTracker started successfully with \(self.notificationObservers.count) observers and idle detection")
-        
+
         // Send tracking restarted notification if we have a notification manager
         notificationManager?.sendTrackingRestartedNotification()
     }
@@ -122,7 +122,7 @@ class ActivityTracker: ObservableObject {
         modelContext = nil
 
         logger.info("ActivityTracker stopped successfully: \(reason)")
-        
+
         // Send tracking stopped notification
         notificationManager?.sendTrackingStoppedNotification(reason: reason)
     }
@@ -135,7 +135,7 @@ class ActivityTracker: ObservableObject {
         return TrackingStatus(
             isTracking: isTracking,
             isTrackingEnabled: isTrackingEnabled,
-            observerCount: notificationObservers.count,
+            observerCount: self.notificationObservers.count,
             currentApplication: currentApplication,
             activityManagerHealth: healthStatus,
             minimumActivityDuration: minimumActivityDuration,
@@ -202,7 +202,7 @@ class ActivityTracker: ObservableObject {
     }
 
     // MARK: - Private Methods - Idle Detection Integration
-    
+
     /// Set up integration with idle detection system
     private func setupIdleDetectionIntegration() {
         NotificationCenter.default.addObserver(
@@ -211,16 +211,16 @@ class ActivityTracker: ObservableObject {
             name: .idleStateChanged,
             object: nil
         )
-        
+
         logger.debug("Idle detection integration set up")
     }
-    
+
     @objc private func handleIdleStateChangeNotification(_ notification: Notification) {
         Task { @MainActor in
             handleIdleStateChange(notification)
         }
     }
-    
+
     /// Handle idle state changes from IdleDetector
     private func handleIdleStateChange(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
@@ -230,12 +230,13 @@ class ActivityTracker: ObservableObject {
             logger.error("Invalid idle state change notification")
             return
         }
-        
+
         if isIdle {
             handleIdleDetected(idleStartTime: idleStartTime)
         } else {
             if let idleDuration = userInfo["idleDuration"] as? TimeInterval,
-               let returnTime = userInfo["returnTime"] as? Date {
+               let returnTime = userInfo["returnTime"] as? Date
+            {
                 handleReturnFromIdle(
                     idleStartTime: idleStartTime,
                     idleDuration: idleDuration,
@@ -244,31 +245,31 @@ class ActivityTracker: ObservableObject {
             }
         }
     }
-    
+
     /// Handle when idle state is detected - pause activity tracking
     private func handleIdleDetected(idleStartTime: Date) {
         guard isTracking else { return }
-        
+
         logger.info("Idle detected - pausing activity tracking at \(idleStartTime)")
         isIdlePaused = true
-        
+
         // End the current activity at the idle start time
         if let context = modelContext {
             activityManager.endCurrentActivityAt(time: idleStartTime, modelContext: context)
         }
     }
-    
+
     /// Handle when user returns from idle - resume activity tracking and adjust durations
     private func handleReturnFromIdle(
         idleStartTime: Date,
         idleDuration: TimeInterval,
-        returnTime: Date
+        returnTime _: Date
     ) {
         guard isTracking else { return }
-        
+
         logger.info("Returned from idle - resuming activity tracking after \(idleDuration)s idle")
         isIdlePaused = false
-        
+
         // Mark any activities during idle period with idle markers
         if let context = modelContext {
             markIdleTimeInActivities(
@@ -277,11 +278,11 @@ class ActivityTracker: ObservableObject {
                 context: context
             )
         }
-        
+
         // Resume tracking from the return time
         currentApplication = getCurrentActiveApplication()
     }
-    
+
     /// Mark activities that occurred during idle time with idle markers
     private func markIdleTimeInActivities(
         idleStartTime: Date,
@@ -289,27 +290,27 @@ class ActivityTracker: ObservableObject {
         context: ModelContext
     ) {
         let idleEndTime = idleStartTime.addingTimeInterval(idleDuration)
-        
+
         do {
             // Find activities that overlap with the idle period
             // We need to fetch all activities and filter them manually due to SwiftData predicate limitations
             let descriptor = FetchDescriptor<Activity>()
             let allActivities = try context.fetch(descriptor)
-            
+
             let overlappingActivities = allActivities.filter { activity in
                 let activityEndTime = activity.endTime ?? Date()
                 return activity.startTime < idleEndTime && activityEndTime > idleStartTime
             }
-            
+
             for activity in overlappingActivities {
                 let activityEndTime = activity.endTime ?? Date()
-                
+
                 // Adjust activity duration to exclude idle time
-                if activity.startTime >= idleStartTime && activityEndTime <= idleEndTime {
+                if activity.startTime >= idleStartTime, activityEndTime <= idleEndTime {
                     // Activity is entirely within idle period - mark as idle
                     activity.isIdleTime = true
                     logger.debug("Marked activity '\(activity.appName)' as idle time")
-                } else if activity.startTime < idleStartTime && activityEndTime > idleEndTime {
+                } else if activity.startTime < idleStartTime, activityEndTime > idleEndTime {
                     // Activity spans the entire idle period - split it
                     splitActivityAroundIdlePeriod(
                         activity: activity,
@@ -317,25 +318,25 @@ class ActivityTracker: ObservableObject {
                         idleEndTime: idleEndTime,
                         context: context
                     )
-                } else if activity.startTime < idleStartTime && activityEndTime > idleStartTime {
+                } else if activity.startTime < idleStartTime, activityEndTime > idleStartTime {
                     // Activity started before idle and ended during idle - truncate
                     activity.endTime = idleStartTime
                     logger.debug("Truncated activity '\(activity.appName)' at idle start")
-                } else if activity.startTime < idleEndTime && activityEndTime > idleEndTime {
+                } else if activity.startTime < idleEndTime, activityEndTime > idleEndTime {
                     // Activity started during idle and ended after - adjust start time
                     activity.startTime = idleEndTime
                     logger.debug("Adjusted activity '\(activity.appName)' start time to idle end")
                 }
             }
-            
+
             try context.save()
             logger.info("Processed \(overlappingActivities.count) activities for idle time adjustment")
-            
+
         } catch {
             logger.error("Failed to mark idle time in activities: \(error)")
         }
     }
-    
+
     /// Split an activity that spans an idle period into two activities
     private func splitActivityAroundIdlePeriod(
         activity: Activity,
@@ -347,10 +348,10 @@ class ActivityTracker: ObservableObject {
             logger.warning("Cannot split activity with no end time")
             return
         }
-        
+
         // Truncate the original activity to end at idle start
         activity.endTime = idleStartTime
-        
+
         // Create a new activity for the time after idle
         let postIdleActivity = Activity(
             id: UUID().uuidString,
@@ -363,12 +364,12 @@ class ActivityTracker: ObservableObject {
             documentPath: activity.documentPath,
             isIdleTime: false
         )
-        
+
         context.insert(postIdleActivity)
-        
+
         logger.info("Split activity '\(activity.appName)' around idle period")
     }
-    
+
     /// Get the currently active application
     private func getCurrentActiveApplication() -> String? {
         if let frontmostApp = NSWorkspace.shared.frontmostApplication {
@@ -440,21 +441,21 @@ class ActivityTracker: ObservableObject {
             logger.debug("Added system wake observer")
 
             logger.info("Successfully configured \(self.notificationObservers.count) notification observers")
-            
+
         } catch {
             logger.error("Failed to setup notification observers: \(error.localizedDescription)")
             notificationManager?.sendTrackingStoppedNotification(reason: "Failed to setup system observers")
             throw ActivityTrackerError.notificationRegistrationFailed(error)
         }
     }
-    
+
     /// Handle tracking errors and send appropriate notifications
     private func handleTrackingError(_ error: Error) {
         logger.error("Tracking error occurred: \(error.localizedDescription)")
-        
+
         // Check if this is a critical error that should stop tracking
         let isCritical = shouldStopTrackingForError(error)
-        
+
         if isCritical {
             stopTracking(reason: "Critical error: \(error.localizedDescription)")
         } else {
@@ -462,21 +463,21 @@ class ActivityTracker: ObservableObject {
             notificationManager?.sendTrackingStoppedNotification(reason: "Warning: \(error.localizedDescription)")
         }
     }
-    
+
     /// Determine if an error should cause tracking to stop
     private func shouldStopTrackingForError(_ error: Error) -> Bool {
         // Add logic to determine critical vs non-critical errors
         if error is ActivityTrackerError {
             return true
         }
-        
+
         // Check for specific error types that indicate system-level issues
         let nsError = error as NSError
         if nsError.domain == NSCocoaErrorDomain {
             // Core Data or system-level errors are usually critical
             return true
         }
-        
+
         return false
     }
 
@@ -599,15 +600,15 @@ class ActivityTracker: ObservableObject {
         // Capture browser context if this is a supported browser
         var url: String?
         var additionalData: Data?
-        
+
         if captureBrowserData && contextCapturer.isSupportedBrowser(app) {
             if let browserContext = contextCapturer.captureBrowserContext(for: app) {
                 logger.debug("Captured browser context - URL: \(browserContext.url ?? "none"), Private: \(browserContext.isPrivate)")
-                
+
                 // Only include data if not in private mode or if we're not respecting private browsing
                 if !browserContext.isPrivate || !respectPrivateBrowsing {
                     url = browserContext.url
-                    
+
                     // Store additional browser context data
                     additionalData = try? JSONEncoder().encode(browserContext)
                 } else {
@@ -630,13 +631,13 @@ class ActivityTracker: ObservableObject {
     /// Filter sensitive information from window titles
     private func filterSensitiveWindowTitle(_ title: String) -> String? {
         let lowercaseTitle = title.lowercased()
-        
+
         // List of sensitive keywords that should cause filtering
         let sensitiveKeywords = [
             "password", "login", "signin", "auth", "private", "incognito",
-            "banking", "payment", "credit", "ssn", "social security"
+            "banking", "payment", "credit", "ssn", "social security",
         ]
-        
+
         // Check if title contains sensitive keywords
         for keyword in sensitiveKeywords {
             if lowercaseTitle.contains(keyword) {
@@ -644,7 +645,7 @@ class ActivityTracker: ObservableObject {
                 return nil // Filter out completely
             }
         }
-        
+
         return title
     }
 
@@ -703,7 +704,7 @@ class ActivityTracker: ObservableObject {
 
         var contextCaptureStatus: String {
             var status: [String] = []
-            
+
             if trackWindowTitles {
                 if accessibilityEnabled {
                     status.append("Window titles: enabled")
@@ -713,7 +714,7 @@ class ActivityTracker: ObservableObject {
             } else {
                 status.append("Window titles: disabled")
             }
-            
+
             if captureBrowserData {
                 status.append("Browser data: enabled")
                 if respectPrivateBrowsing {
@@ -724,9 +725,9 @@ class ActivityTracker: ObservableObject {
             } else {
                 status.append("Browser data: disabled")
             }
-            
+
             status.append("Idle detection: \(idleStatus.statusDescription)")
-            
+
             return status.joined(separator: ", ")
         }
     }

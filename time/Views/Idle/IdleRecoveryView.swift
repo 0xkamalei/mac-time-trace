@@ -1,43 +1,43 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 /// Dialog for handling idle time recovery when user returns from idle state
 struct IdleRecoveryView: View {
     // MARK: - Properties
-    
+
     let idleStartTime: Date
     let idleDuration: TimeInterval
     let onComplete: (IdleRecoveryAction) -> Void
-    
+
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Project.sortOrder) private var projects: [Project]
-    
+
     @State private var selectedAction: IdleRecoveryAction = .ignore
     @State private var selectedProject: Project?
     @State private var customActivity: String = ""
     @State private var notes: String = ""
     @State private var showingProjectPicker = false
-    
+
     // MARK: - Body
-    
+
     var body: some View {
         VStack(spacing: 20) {
             headerSection
-            
+
             Divider()
-            
+
             actionSelectionSection
-            
-            if selectedAction == .assignToProject {
+
+            if case .assignToProject = selectedAction {
                 projectSelectionSection
             }
-            
-            if selectedAction == .createTimeEntry {
+
+            if case .createTimeEntry = selectedAction {
                 timeEntryDetailsSection
             }
-            
+
             Divider()
-            
+
             buttonSection
         }
         .padding(24)
@@ -46,34 +46,34 @@ struct IdleRecoveryView: View {
         .cornerRadius(12)
         .shadow(radius: 20)
     }
-    
+
     // MARK: - View Components
-    
+
     private var headerSection: some View {
         VStack(spacing: 12) {
             Image(systemName: "clock.badge.questionmark")
                 .font(.system(size: 48))
                 .foregroundColor(.orange)
-            
+
             Text("What were you doing?")
                 .font(.title2)
                 .fontWeight(.semibold)
-            
+
             Text("You were away for \(formattedIdleDuration)")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
-            
+
             Text("From \(formattedTimeRange)")
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var actionSelectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("How would you like to handle this time?")
                 .font(.headline)
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 actionOption(
                     action: .ignore,
@@ -81,21 +81,21 @@ struct IdleRecoveryView: View {
                     description: "Don't track this idle period",
                     icon: "xmark.circle"
                 )
-                
+
                 actionOption(
-                    action: .assignToProject,
+                    action: .assignToProject(),
                     title: "Assign to a project",
                     description: "Create a time entry for a specific project",
                     icon: "folder"
                 )
-                
+
                 actionOption(
-                    action: .createTimeEntry,
+                    action: .createTimeEntry(activity: "", notes: nil),
                     title: "Create custom time entry",
                     description: "Add a manual time entry with custom details",
                     icon: "plus.circle"
                 )
-                
+
                 actionOption(
                     action: .markAsBreak,
                     title: "Mark as break time",
@@ -105,12 +105,12 @@ struct IdleRecoveryView: View {
             }
         }
     }
-    
+
     private var projectSelectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Select Project")
                 .font(.headline)
-            
+
             Button(action: { showingProjectPicker = true }) {
                 HStack {
                     if let project = selectedProject {
@@ -139,35 +139,35 @@ struct IdleRecoveryView: View {
                     onDismiss: { showingProjectPicker = false }
                 )
             }
-            
+
             TextField("Activity description (optional)", text: $customActivity)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
         }
     }
-    
+
     private var timeEntryDetailsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Time Entry Details")
                 .font(.headline)
-            
+
             TextField("What were you working on?", text: $customActivity)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-            
+
             TextField("Notes (optional)", text: $notes, axis: .vertical)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .lineLimit(3...6)
+                .lineLimit(3 ... 6)
         }
     }
-    
+
     private var buttonSection: some View {
         HStack(spacing: 12) {
             Button("Cancel") {
                 onComplete(.ignore)
             }
             .keyboardShortcut(.escape)
-            
+
             Spacer()
-            
+
             Button("Apply") {
                 handleApplyAction()
             }
@@ -176,9 +176,9 @@ struct IdleRecoveryView: View {
             .disabled(!isActionValid)
         }
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func actionOption(
         action: IdleRecoveryAction,
         title: String,
@@ -191,20 +191,20 @@ struct IdleRecoveryView: View {
                     .font(.title3)
                     .foregroundColor(selectedAction == action ? .accentColor : .secondary)
                     .frame(width: 20)
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
-                    
+
                     Text(description)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
-                
+
                 if selectedAction == action {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.accentColor)
@@ -223,33 +223,33 @@ struct IdleRecoveryView: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
+
     private var formattedIdleDuration: String {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute]
         formatter.unitsStyle = .abbreviated
         return formatter.string(from: idleDuration) ?? "\(Int(idleDuration / 60)) min"
     }
-    
+
     private var formattedTimeRange: String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         let endTime = idleStartTime.addingTimeInterval(idleDuration)
         return "\(formatter.string(from: idleStartTime)) - \(formatter.string(from: endTime))"
     }
-    
+
     private var dynamicHeight: CGFloat {
         var height: CGFloat = 280 // Base height
-        
-        if selectedAction == .assignToProject {
+
+        if case .assignToProject = selectedAction {
             height += 100
-        } else if selectedAction == .createTimeEntry {
+        } else if case .createTimeEntry = selectedAction {
             height += 120
         }
-        
+
         return height
     }
-    
+
     private var isActionValid: Bool {
         switch selectedAction {
         case .ignore, .markAsBreak:
@@ -260,10 +260,10 @@ struct IdleRecoveryView: View {
             return !customActivity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }
-    
+
     private func handleApplyAction() {
         var finalAction = selectedAction
-        
+
         // Populate action with additional data
         switch selectedAction {
         case .assignToProject:
@@ -281,7 +281,7 @@ struct IdleRecoveryView: View {
         default:
             break
         }
-        
+
         onComplete(finalAction)
     }
 }
@@ -292,7 +292,7 @@ private struct ProjectPickerPopover: View {
     let projects: [Project]
     @Binding var selectedProject: Project?
     let onDismiss: () -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Select Project")
@@ -300,9 +300,9 @@ private struct ProjectPickerPopover: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 8)
-            
+
             Divider()
-            
+
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(hierarchicalProjects, id: \.id) { project in
@@ -322,7 +322,7 @@ private struct ProjectPickerPopover: View {
         .frame(width: 280)
         .background(Color(NSColor.windowBackgroundColor))
     }
-    
+
     private var hierarchicalProjects: [Project] {
         // Create a simple flat list for now - could be enhanced with hierarchy later
         return projects.sorted { $0.name < $1.name }
@@ -333,20 +333,20 @@ private struct ProjectPickerRow: View {
     let project: Project
     let isSelected: Bool
     let onSelect: () -> Void
-    
+
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: 12) {
                 Circle()
                     .fill(project.color)
                     .frame(width: 12, height: 12)
-                
+
                 Text(project.name)
                     .font(.subheadline)
                     .foregroundColor(.primary)
-                
+
                 Spacer()
-                
+
                 if isSelected {
                     Image(systemName: "checkmark")
                         .foregroundColor(.accentColor)
@@ -368,7 +368,7 @@ enum IdleRecoveryAction: Equatable, CustomStringConvertible {
     case assignToProject(project: Project? = nil, activity: String? = nil)
     case createTimeEntry(activity: String, notes: String? = nil)
     case markAsBreak
-    
+
     static func == (lhs: IdleRecoveryAction, rhs: IdleRecoveryAction) -> Bool {
         switch (lhs, rhs) {
         case (.ignore, .ignore), (.markAsBreak, .markAsBreak):
@@ -381,7 +381,7 @@ enum IdleRecoveryAction: Equatable, CustomStringConvertible {
             return false
         }
     }
-    
+
     var description: String {
         switch self {
         case .ignore:

@@ -8,17 +8,17 @@ struct PerformanceSettingsView: View {
     @StateObject private var backgroundProcessor = BackgroundProcessingManager.shared
     @StateObject private var resourceCleanup = ResourceCleanupManager.shared
     @StateObject private var testRunner = PerformanceTestRunner.shared
-    
+
     @State private var isRunningTests = false
     @State private var showingTestResults = false
     @State private var selectedTab: SettingsTab = .monitoring
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Tab selector
                 tabSelector
-                
+
                 // Content based on selected tab
                 ScrollView {
                     LazyVStack(spacing: 20) {
@@ -44,9 +44,9 @@ struct PerformanceSettingsView: View {
             }
         }
     }
-    
+
     // MARK: - Tab Selector
-    
+
     private var tabSelector: some View {
         HStack(spacing: 0) {
             ForEach(SettingsTab.allCases, id: \.self) { tab in
@@ -71,40 +71,40 @@ struct PerformanceSettingsView: View {
         .padding(.horizontal)
         .padding(.top)
     }
-    
+
     // MARK: - Monitoring Settings
-    
+
     private var monitoringSettings: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Performance Monitoring")
                 .font(.title2.bold())
-            
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Monitoring Configuration")
                         .font(.headline)
-                    
+
                     Toggle("Enable Performance Monitoring", isOn: .constant(performanceMonitor.isMonitoring))
                         .disabled(true) // Always enabled for now
-                    
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Alert Thresholds")
                             .font(.subheadline.bold())
-                        
+
                         HStack {
                             Text("CPU Usage Alert:")
                             Spacer()
                             Text("80%")
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         HStack {
                             Text("Memory Usage Alert:")
                             Spacer()
                             Text("85%")
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         HStack {
                             Text("Response Time Alert:")
                             Spacer()
@@ -114,14 +114,14 @@ struct PerformanceSettingsView: View {
                     }
                 }
             }
-            
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Current Status")
                         .font(.headline)
-                    
+
                     let summary = performanceMonitor.getCurrentPerformanceSummary()
-                    
+
                     HStack {
                         Text("Performance Score:")
                         Spacer()
@@ -129,7 +129,7 @@ struct PerformanceSettingsView: View {
                             .foregroundColor(scoreColor(summary.performanceScore))
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Active Alerts:")
                         Spacer()
@@ -137,7 +137,7 @@ struct PerformanceSettingsView: View {
                             .foregroundColor(summary.activeAlerts.isEmpty ? .green : .red)
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Monitoring Since:")
                         Spacer()
@@ -148,35 +148,35 @@ struct PerformanceSettingsView: View {
             }
         }
     }
-    
+
     // MARK: - Memory Settings
-    
+
     private var memorySettings: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Memory Management")
                 .font(.title2.bold())
-            
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Cache Configuration")
                         .font(.headline)
-                    
+
                     let memoryMetrics = memoryManager.getMemoryPerformanceMetrics()
-                    
+
                     HStack {
                         Text("Current Cache Size:")
                         Spacer()
                         Text(ByteCountFormatter.string(fromByteCount: Int64(memoryMetrics.cacheSize), countStyle: .memory))
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Cache Entries:")
                         Spacer()
                         Text("\(memoryMetrics.cacheEntryCount)")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Memory Efficiency:")
                         Spacer()
@@ -184,17 +184,17 @@ struct PerformanceSettingsView: View {
                             .foregroundColor(memoryMetrics.memoryEfficiency > 0.7 ? .green : .orange)
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     Divider()
-                    
+
                     HStack {
                         Button("Clear All Caches") {
                             memoryManager.clearAllCaches()
                         }
                         .buttonStyle(.bordered)
-                        
+
                         Spacer()
-                        
+
                         if memoryManager.isMemoryPressureHigh {
                             Label("High Pressure", systemImage: "exclamationmark.triangle.fill")
                                 .foregroundColor(.red)
@@ -203,29 +203,29 @@ struct PerformanceSettingsView: View {
                     }
                 }
             }
-            
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Resource Cleanup")
                         .font(.headline)
-                    
+
                     let cleanupMetrics = resourceCleanup.getCleanupMetrics()
                     let resourceStats = resourceCleanup.getResourceStatistics()
-                    
+
                     HStack {
                         Text("Tracked Resources:")
                         Spacer()
                         Text("\(resourceStats.totalTrackedResources)")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Resources Cleaned:")
                         Spacer()
                         Text("\(cleanupMetrics.resourcesCleaned)")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     if let lastCleanup = cleanupMetrics.lastCleanupTime {
                         HStack {
                             Text("Last Cleanup:")
@@ -234,9 +234,9 @@ struct PerformanceSettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
+
                     Divider()
-                    
+
                     Button("Force Cleanup") {
                         Task {
                             await resourceCleanup.performCleanup(strategy: .normal)
@@ -248,36 +248,36 @@ struct PerformanceSettingsView: View {
             }
         }
     }
-    
+
     // MARK: - Database Settings
-    
+
     private var databaseSettings: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Database Performance")
                 .font(.title2.bold())
-            
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Query Performance")
                         .font(.headline)
-                    
+
                     let dbMetrics = databaseOptimizer.getPerformanceMetrics()
                     let queryStats = databaseOptimizer.getQueryPerformanceStats()
-                    
+
                     HStack {
                         Text("Total Queries:")
                         Spacer()
                         Text("\(queryStats.totalQueries)")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Average Query Time:")
                         Spacer()
                         Text("\(String(format: "%.3f", queryStats.averageDuration))s")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Slowest Query:")
                         Spacer()
@@ -285,7 +285,7 @@ struct PerformanceSettingsView: View {
                             .foregroundColor(queryStats.slowestDuration > 1.0 ? .red : .primary)
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     if !queryStats.slowestQueryType.isEmpty {
                         HStack {
                             Text("Slowest Type:")
@@ -296,12 +296,12 @@ struct PerformanceSettingsView: View {
                     }
                 }
             }
-            
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Database Maintenance")
                         .font(.headline)
-                    
+
                     if let lastMaintenance = dbMetrics.lastMaintenanceTime {
                         HStack {
                             Text("Last Maintenance:")
@@ -309,7 +309,7 @@ struct PerformanceSettingsView: View {
                             Text(lastMaintenance, style: .relative)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         HStack {
                             Text("Maintenance Duration:")
                             Spacer()
@@ -317,7 +317,7 @@ struct PerformanceSettingsView: View {
                                 .font(.system(.body, design: .monospaced))
                         }
                     }
-                    
+
                     if let lastIndexCreation = dbMetrics.lastIndexCreationTime {
                         HStack {
                             Text("Indexes Created:")
@@ -326,9 +326,9 @@ struct PerformanceSettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                    
+
                     Divider()
-                    
+
                     Button("Run Maintenance") {
                         Task {
                             try? await databaseOptimizer.performMaintenance()
@@ -339,28 +339,28 @@ struct PerformanceSettingsView: View {
             }
         }
     }
-    
+
     // MARK: - Processing Settings
-    
+
     private var processingSettings: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Background Processing")
                 .font(.title2.bold())
-            
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Processing Status")
                         .font(.headline)
-                    
+
                     let processingMetrics = backgroundProcessor.getProcessingMetrics()
-                    
+
                     HStack {
                         Text("Active Operations:")
                         Spacer()
                         Text("\(processingMetrics.activeOperationCount)")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Heavy Operations:")
                         Spacer()
@@ -368,21 +368,21 @@ struct PerformanceSettingsView: View {
                             .foregroundColor(processingMetrics.heavyOperationCount > 0 ? .orange : .primary)
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Total Operations:")
                         Spacer()
                         Text("\(processingMetrics.totalOperations)")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Average Duration:")
                         Spacer()
                         Text("\(String(format: "%.3f", processingMetrics.averageOperationDuration))s")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     if backgroundProcessor.isProcessingHeavyOperations {
                         HStack {
                             Label("Heavy Processing Active", systemImage: "cpu.fill")
@@ -393,37 +393,37 @@ struct PerformanceSettingsView: View {
                     }
                 }
             }
-            
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Queue Configuration")
                         .font(.headline)
-                    
+
                     let queueStats = backgroundProcessor.getQueueStatistics()
-                    
+
                     HStack {
                         Text("Background Queue Load:")
                         Spacer()
                         Text("\(String(format: "%.1f", queueStats.backgroundQueueLoad * 100))%")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Heavy Queue Load:")
                         Spacer()
                         Text("\(String(format: "%.1f", queueStats.heavyQueueLoad * 100))%")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     HStack {
                         Text("Throughput:")
                         Spacer()
                         Text("\(String(format: "%.2f", queueStats.throughput)) ops/s")
                             .font(.system(.body, design: .monospaced))
                     }
-                    
+
                     Divider()
-                    
+
                     Button("Cancel All Operations") {
                         Task {
                             await backgroundProcessor.cancelAllOperations()
@@ -435,19 +435,19 @@ struct PerformanceSettingsView: View {
             }
         }
     }
-    
+
     // MARK: - Testing Settings
-    
+
     private var testingSettings: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Performance Testing")
                 .font(.title2.bold())
-            
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Automated Testing")
                         .font(.headline)
-                    
+
                     if testRunner.isRunningTests {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -457,7 +457,7 @@ struct PerformanceSettingsView: View {
                                     .foregroundColor(.secondary)
                                 Spacer()
                             }
-                            
+
                             if let currentTest = testRunner.currentTest {
                                 Text("Current: \(currentTest)")
                                     .font(.caption)
@@ -469,7 +469,7 @@ struct PerformanceSettingsView: View {
                             Text("Run comprehensive performance tests to benchmark your system.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            
+
                             HStack {
                                 Button("Run All Tests") {
                                     Task {
@@ -477,7 +477,7 @@ struct PerformanceSettingsView: View {
                                     }
                                 }
                                 .buttonStyle(.borderedProminent)
-                                
+
                                 if !testRunner.testResults.isEmpty {
                                     Button("View Results") {
                                         showingTestResults = true
@@ -489,17 +489,17 @@ struct PerformanceSettingsView: View {
                     }
                 }
             }
-            
+
             if !testRunner.testResults.isEmpty {
                 settingsCard {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Latest Test Results")
                             .font(.headline)
-                        
+
                         let passedTests = testRunner.testResults.filter { $0.passed }.count
                         let totalTests = testRunner.testResults.count
                         let overallScore = testRunner.testResults.map { $0.performanceScore }.reduce(0, +) / Double(totalTests)
-                        
+
                         HStack {
                             Text("Tests Passed:")
                             Spacer()
@@ -507,7 +507,7 @@ struct PerformanceSettingsView: View {
                                 .foregroundColor(passedTests == totalTests ? .green : .orange)
                                 .font(.system(.body, design: .monospaced))
                         }
-                        
+
                         HStack {
                             Text("Overall Score:")
                             Spacer()
@@ -515,24 +515,24 @@ struct PerformanceSettingsView: View {
                                 .foregroundColor(scoreColor(overallScore))
                                 .font(.system(.body, design: .monospaced))
                         }
-                        
+
                         // Show recent test results
                         ForEach(testRunner.testResults.prefix(3), id: \.id) { result in
                             HStack {
                                 Image(systemName: result.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
                                     .foregroundColor(result.passed ? .green : .red)
-                                
+
                                 Text(result.testName)
                                     .font(.caption)
-                                
+
                                 Spacer()
-                                
+
                                 Text("\(String(format: "%.1f", result.performanceScore))%")
                                     .font(.caption.monospaced())
                                     .foregroundColor(.secondary)
                             }
                         }
-                        
+
                         if testRunner.testResults.count > 3 {
                             Button("View All Results") {
                                 showingTestResults = true
@@ -544,9 +544,9 @@ struct PerformanceSettingsView: View {
             }
         }
     }
-    
+
     // MARK: - Helper Views
-    
+
     private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
             .padding()
@@ -554,12 +554,12 @@ struct PerformanceSettingsView: View {
             .cornerRadius(12)
             .shadow(radius: 2)
     }
-    
+
     private func scoreColor(_ score: Double) -> Color {
         switch score {
-        case 80...100:
+        case 80 ... 100:
             return .green
-        case 60..<80:
+        case 60 ..< 80:
             return .orange
         default:
             return .red
@@ -572,7 +572,7 @@ struct PerformanceSettingsView: View {
 struct PerformanceTestResultsView: View {
     let results: [PerformanceTestResult]
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         NavigationView {
             List(results, id: \.id) { result in
@@ -580,17 +580,17 @@ struct PerformanceTestResultsView: View {
                     HStack {
                         Image(systemName: result.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
                             .foregroundColor(result.passed ? .green : .red)
-                        
+
                         Text(result.testName)
                             .font(.headline)
-                        
+
                         Spacer()
-                        
+
                         Text("\(String(format: "%.1f", result.performanceScore))%")
                             .font(.system(.body, design: .monospaced))
                             .foregroundColor(scoreColor(result.performanceScore))
                     }
-                    
+
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Response Time")
@@ -599,9 +599,9 @@ struct PerformanceTestResultsView: View {
                             Text("\(String(format: "%.3f", result.averageResponseTime))s")
                                 .font(.caption.monospaced())
                         }
-                        
+
                         Spacer()
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Throughput")
                                 .font(.caption)
@@ -609,9 +609,9 @@ struct PerformanceTestResultsView: View {
                             Text("\(String(format: "%.2f", result.throughput)) ops/s")
                                 .font(.caption.monospaced())
                         }
-                        
+
                         Spacer()
-                        
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Memory")
                                 .font(.caption)
@@ -620,7 +620,7 @@ struct PerformanceTestResultsView: View {
                                 .font(.caption.monospaced())
                         }
                     }
-                    
+
                     if let errorMessage = result.errorMessage {
                         Text("Error: \(errorMessage)")
                             .font(.caption)
@@ -640,12 +640,12 @@ struct PerformanceTestResultsView: View {
             }
         }
     }
-    
+
     private func scoreColor(_ score: Double) -> Color {
         switch score {
-        case 80...100:
+        case 80 ... 100:
             return .green
-        case 60..<80:
+        case 60 ..< 80:
             return .orange
         default:
             return .red
@@ -661,7 +661,7 @@ enum SettingsTab: CaseIterable {
     case database
     case processing
     case testing
-    
+
     var title: String {
         switch self {
         case .monitoring:
@@ -676,7 +676,7 @@ enum SettingsTab: CaseIterable {
             return "Testing"
         }
     }
-    
+
     var iconName: String {
         switch self {
         case .monitoring:

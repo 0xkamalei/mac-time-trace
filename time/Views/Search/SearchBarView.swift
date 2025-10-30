@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 /// Main search bar component with live search and suggestions
 struct SearchBarView: View {
@@ -7,7 +7,7 @@ struct SearchBarView: View {
     @State private var showingSuggestions = false
     @State private var showingFilters = false
     @FocusState private var isSearchFocused: Bool
-    
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -15,7 +15,7 @@ struct SearchBarView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
                     .font(.system(size: 16))
-                
+
                 // Search text field
                 TextField("Search activities, time entries, and projects...", text: $searchManager.searchQuery)
                     .textFieldStyle(.plain)
@@ -28,7 +28,7 @@ struct SearchBarView: View {
                         searchManager.search()
                         showingSuggestions = !newValue.isEmpty && isSearchFocused
                     }
-                
+
                 // Clear button
                 if !searchManager.searchQuery.isEmpty {
                     Button(action: {
@@ -41,7 +41,7 @@ struct SearchBarView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                
+
                 // Filter button
                 Button(action: {
                     showingFilters.toggle()
@@ -49,7 +49,7 @@ struct SearchBarView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "line.3.horizontal.decrease.circle")
                             .font(.system(size: 16))
-                        
+
                         if searchManager.activeFilters.hasActiveFilters {
                             Circle()
                                 .fill(.blue)
@@ -72,7 +72,7 @@ struct SearchBarView: View {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(isSearchFocused ? Color.accentColor : Color.clear, lineWidth: 2)
             )
-            
+
             // Search suggestions dropdown
             if showingSuggestions && isSearchFocused {
                 SearchSuggestionsView(searchManager: searchManager) { suggestion in
@@ -100,7 +100,7 @@ struct SearchBarView: View {
             }
         }
     }
-    
+
     private func hideKeyboard() {
         isSearchFocused = false
         NSApp.keyWindow?.makeFirstResponder(nil)
@@ -111,11 +111,11 @@ struct SearchBarView: View {
 struct SearchSuggestionsView: View {
     @ObservedObject var searchManager: SearchManager
     let onSuggestionSelected: (SearchSuggestion) -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             let suggestions = searchManager.getSearchSuggestions()
-            
+
             if !suggestions.isEmpty {
                 ForEach(suggestions) { suggestion in
                     Button(action: {
@@ -126,13 +126,13 @@ struct SearchSuggestionsView: View {
                                 .foregroundColor(.secondary)
                                 .font(.system(size: 12))
                                 .frame(width: 16)
-                            
+
                             Text(suggestion.displayText)
                                 .font(.system(size: 13))
                                 .foregroundColor(.primary)
-                            
+
                             Spacer()
-                            
+
                             Text(suggestion.type.displayName)
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
@@ -143,10 +143,10 @@ struct SearchSuggestionsView: View {
                     }
                     .buttonStyle(.plain)
                     .background(Color.clear)
-                    .onHover { hovering in
+                    .onHover { _ in
                         // Add hover effect if needed
                     }
-                    
+
                     if suggestion.id != suggestions.last?.id {
                         Divider()
                     }
@@ -156,7 +156,7 @@ struct SearchSuggestionsView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
                         .font(.system(size: 12))
-                    
+
                     Text("No suggestions")
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
@@ -195,11 +195,11 @@ extension SearchSuggestion.SuggestionType {
 
 #Preview {
     @StateObject var searchManager = SearchManager(modelContext: ModelContext(try! ModelContainer(for: Activity.self, TimeEntry.self, Project.self)))
-    
+
     VStack {
         SearchBarView(searchManager: searchManager)
             .padding()
-        
+
         Spacer()
     }
     .frame(width: 400, height: 200)

@@ -5,29 +5,29 @@ struct DataIntegrityView: View {
         activityManager: ActivityManager.shared,
         timeEntryManager: TimeEntryManager.shared
     )
-    
+
     @State private var validationResult: DataValidationResult?
     @State private var isScanning = false
     @State private var showingConflictDetails = false
     @State private var selectedConflict: DataConflict?
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             headerSection
-            
+
             if isScanning {
                 scanningSection
             } else {
                 actionButtonsSection
-                
+
                 if let result = validationResult {
                     validationResultSection(result)
                 }
-                
+
                 if !conflictResolver.detectedConflicts.isEmpty {
                     conflictsSection
                 }
-                
+
                 if !conflictResolver.resolutionResults.isEmpty {
                     resolutionHistorySection
                 }
@@ -44,24 +44,24 @@ struct DataIntegrityView: View {
             }
         }
     }
-    
+
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Data Integrity Management")
                 .font(.title2)
                 .fontWeight(.semibold)
-            
+
             Text("Scan for and resolve conflicts in your time tracking data.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var scanningSection: some View {
         VStack(spacing: 12) {
             ProgressView()
                 .scaleEffect(1.2)
-            
+
             Text("Scanning for data conflicts...")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -69,24 +69,24 @@ struct DataIntegrityView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
     }
-    
+
     private var actionButtonsSection: some View {
         HStack(spacing: 12) {
             Button("Scan for Conflicts") {
                 scanForConflicts()
             }
             .buttonStyle(.borderedProminent)
-            
+
             Button("Validate Data") {
                 validateData()
             }
             .buttonStyle(.bordered)
-            
+
             Button("Repair Data") {
                 repairData()
             }
             .buttonStyle(.bordered)
-            
+
             if !conflictResolver.detectedConflicts.isEmpty {
                 Button("Auto-Resolve") {
                     autoResolveConflicts()
@@ -96,23 +96,23 @@ struct DataIntegrityView: View {
             }
         }
     }
-    
+
     private func validationResultSection(_ result: DataValidationResult) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: result.isValid ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .foregroundColor(result.isValid ? .green : .orange)
-                
+
                 Text("Validation Result")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 Text(result.validatedAt, style: .time)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             if result.isValid {
                 Text("✅ No data integrity issues found")
                     .foregroundColor(.green)
@@ -120,12 +120,12 @@ struct DataIntegrityView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("⚠️ Found \(result.conflicts.count) conflicts")
                         .foregroundColor(.orange)
-                    
+
                     if !result.warnings.isEmpty {
                         Text("ℹ️ \(result.warnings.count) warnings")
                             .foregroundColor(.blue)
                     }
-                    
+
                     if result.repairedItems > 0 {
                         Text("🔧 Repaired \(result.repairedItems) items")
                             .foregroundColor(.green)
@@ -137,12 +137,12 @@ struct DataIntegrityView: View {
         .background(Color.gray.opacity(0.2))
         .cornerRadius(8)
     }
-    
+
     private var conflictsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Detected Conflicts")
                 .font(.headline)
-            
+
             ForEach(conflictResolver.detectedConflicts, id: \.id) { conflict in
                 ConflictRowView(conflict: conflict) {
                     selectedConflict = conflict
@@ -151,30 +151,30 @@ struct DataIntegrityView: View {
             }
         }
     }
-    
+
     private var resolutionHistorySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Resolution History")
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 Button("Clear History") {
                     conflictResolver.clearResolutionHistory()
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
-            
+
             ForEach(conflictResolver.resolutionResults, id: \.conflictId) { result in
                 ResolutionResultRowView(result: result)
             }
         }
     }
-    
+
     // MARK: - Actions
-    
+
     private func scanForConflicts() {
         isScanning = true
         Task {
@@ -184,7 +184,7 @@ struct DataIntegrityView: View {
             }
         }
     }
-    
+
     private func validateData() {
         isScanning = true
         Task {
@@ -195,7 +195,7 @@ struct DataIntegrityView: View {
             }
         }
     }
-    
+
     private func repairData() {
         isScanning = true
         Task {
@@ -206,7 +206,7 @@ struct DataIntegrityView: View {
             }
         }
     }
-    
+
     private func autoResolveConflicts() {
         isScanning = true
         Task {
@@ -221,7 +221,7 @@ struct DataIntegrityView: View {
 struct ConflictRowView: View {
     let conflict: DataConflict
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack {
@@ -236,20 +236,20 @@ struct ConflictRowView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     if conflict.overlapDuration > 0 {
                         Text("Overlap: \(ActivityDataProcessor.formatDuration(conflict.overlapDuration))")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Text("Suggested: \(resolutionDescription)")
                         .font(.caption)
                         .foregroundColor(.blue)
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -260,12 +260,12 @@ struct ConflictRowView: View {
         .background(Color.gray.opacity(0.2))
         .cornerRadius(8)
     }
-    
+
     private var severityIcon: some View {
         Image(systemName: severityIconName)
             .foregroundColor(severityColor)
     }
-    
+
     private var severityIconName: String {
         switch conflict.severity {
         case .low: return "info.circle.fill"
@@ -273,7 +273,7 @@ struct ConflictRowView: View {
         case .high: return "xmark.octagon.fill"
         }
     }
-    
+
     private var severityColor: Color {
         switch conflict.severity {
         case .low: return .blue
@@ -281,7 +281,7 @@ struct ConflictRowView: View {
         case .high: return .red
         }
     }
-    
+
     private var resolutionDescription: String {
         switch conflict.suggestedResolution {
         case .mergeItems: return "Merge Items"
@@ -293,7 +293,7 @@ struct ConflictRowView: View {
         case .manualReview: return "Manual Review"
         }
     }
-    
+
     private var conflictTypeDescription: String {
         switch conflict.type {
         case .overlappingTimeEntries:
@@ -314,29 +314,29 @@ struct ConflictRowView: View {
 
 struct ResolutionResultRowView: View {
     let result: ConflictResolutionResult
-    
+
     var body: some View {
         HStack {
             Image(systemName: result.success ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .foregroundColor(result.success ? .green : .red)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(resolutionDescription)
                     .font(.subheadline)
-                
+
                 if !result.success, let error = result.error {
                     Text(error.localizedDescription)
                         .font(.caption)
                         .foregroundColor(.red)
                 }
-                
+
                 Text(result.resolvedAt, style: .time)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             Spacer()
-            
+
             if result.success {
                 VStack(alignment: .trailing, spacing: 2) {
                     if !result.modifiedItems.isEmpty {
@@ -344,7 +344,7 @@ struct ResolutionResultRowView: View {
                             .font(.caption)
                             .foregroundColor(.blue)
                     }
-                    
+
                     if !result.deletedItems.isEmpty {
                         Text("\(result.deletedItems.count) deleted")
                             .font(.caption)
@@ -355,7 +355,7 @@ struct ResolutionResultRowView: View {
         }
         .padding(.vertical, 4)
     }
-    
+
     private var resolutionDescription: String {
         switch result.resolution {
         case .mergeItems: return "Merged Items"
@@ -372,19 +372,19 @@ struct ResolutionResultRowView: View {
 struct ConflictDetailView: View {
     let conflict: DataConflict
     let resolver: DataConflictResolver
-    
+
     @Environment(\.dismiss) private var dismiss
     @State private var selectedResolution: ConflictResolution
     @State private var isResolving = false
-    
+
     init(conflict: DataConflict, resolver: DataConflictResolver) {
         self.conflict = conflict
         self.resolver = resolver
-        self._selectedResolution = State(initialValue: conflict.suggestedResolution)
+        _selectedResolution = State(initialValue: conflict.suggestedResolution)
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var conflictTypeDescription: String {
         switch conflict.type {
         case .overlappingTimeEntries:
@@ -401,7 +401,7 @@ struct ConflictDetailView: View {
             return "Future Timestamp"
         }
     }
-    
+
     private var severityDescription: String {
         switch conflict.severity {
         case .low:
@@ -412,7 +412,7 @@ struct ConflictDetailView: View {
             return "High"
         }
     }
-    
+
     private var availableResolutions: [ConflictResolution] {
         switch conflict.type {
         case .overlappingTimeEntries, .overlappingActivities:
@@ -425,16 +425,16 @@ struct ConflictDetailView: View {
             return [.manualReview]
         }
     }
-    
+
     var body: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 20) {
                 conflictInfoSection
                 itemsSection
                 resolutionSection
-                
+
                 Spacer()
-                
+
                 actionButtonsSection
             }
             .padding()
@@ -448,9 +448,7 @@ struct ConflictDetailView: View {
             }
         }
     }
-    
 
-    
     private var conflictInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -459,14 +457,14 @@ struct ConflictDetailView: View {
                 Text("Conflict Information")
                     .font(.headline)
             }
-            
+
             Text("Type: \(self.conflictTypeDescription)")
             Text("Severity: \(self.severityDescription)")
-            
+
             if self.conflict.overlapDuration > 0 {
                 Text("Overlap Duration: \(ActivityDataProcessor.formatDuration(self.conflict.overlapDuration))")
             }
-            
+
             Text("Detected: \(self.conflict.detectedAt, style: .relative) ago")
                 .foregroundColor(.secondary)
         }
@@ -474,23 +472,23 @@ struct ConflictDetailView: View {
         .background(Color.gray.opacity(0.2))
         .cornerRadius(8)
     }
-    
+
     private var itemsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Affected Items")
                 .font(.headline)
-            
+
             ForEach(Array(self.conflict.items.enumerated()), id: \.offset) { index, item in
                 ConflictItemRowView(item: item, index: index + 1)
             }
         }
     }
-    
+
     private var resolutionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Resolution Strategy")
                 .font(.headline)
-            
+
             Picker("Resolution", selection: self.$selectedResolution) {
                 ForEach(self.availableResolutions, id: \.self) { resolution in
                     Text(self.resolutionName(resolution))
@@ -498,22 +496,22 @@ struct ConflictDetailView: View {
                 }
             }
             .pickerStyle(.menu)
-            
+
             Text(self.resolutionDescription(self.selectedResolution))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
     }
-    
+
     private var actionButtonsSection: some View {
         HStack {
             Button("Cancel") {
                 self.dismiss()
             }
             .buttonStyle(.bordered)
-            
+
             Spacer()
-            
+
             Button(self.isResolving ? "Resolving..." : "Apply Resolution") {
                 self.applyResolution()
             }
@@ -521,7 +519,7 @@ struct ConflictDetailView: View {
             .disabled(self.isResolving)
         }
     }
-    
+
     private func resolutionName(_ resolution: ConflictResolution) -> String {
         switch resolution {
         case .mergeItems: return "Merge Items"
@@ -533,7 +531,7 @@ struct ConflictDetailView: View {
         case .manualReview: return "Manual Review"
         }
     }
-    
+
     private func resolutionDescription(_ resolution: ConflictResolution) -> String {
         switch resolution {
         case .mergeItems: return "Combine overlapping items into a single item"
@@ -545,9 +543,9 @@ struct ConflictDetailView: View {
         case .manualReview: return "Mark for manual review and resolution"
         }
     }
-    
+
     private func applyResolution() {
-        self.isResolving = true
+        isResolving = true
         Task {
             await self.resolver.resolveConflict(self.conflict, resolution: self.selectedResolution)
             await MainActor.run {
@@ -561,30 +559,30 @@ struct ConflictDetailView: View {
 struct ConflictItemRowView: View {
     let item: ConflictItem
     let index: Int
-    
+
     var body: some View {
         HStack {
             Text("\(index).")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .frame(width: 20, alignment: .leading)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Image(systemName: itemIcon)
                         .foregroundColor(itemColor)
-                    
+
                     Text(itemTitle)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     Spacer()
-                    
+
                     Text(ActivityDataProcessor.formatDuration(item.duration))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Text("\(item.startTime, style: .time) - \(item.endTime, style: .time)")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -594,26 +592,26 @@ struct ConflictItemRowView: View {
         .background(Color.gray.opacity(0.2))
         .cornerRadius(6)
     }
-    
+
     private var itemIcon: String {
         switch item {
         case .activity: return "app.fill"
         case .timeEntry: return "clock.fill"
         }
     }
-    
+
     private var itemColor: Color {
         switch item {
         case .activity: return .blue
         case .timeEntry: return .green
         }
     }
-    
+
     private var itemTitle: String {
         switch item {
-        case .activity(let activity):
+        case let .activity(activity):
             return activity.bestDisplayTitle
-        case .timeEntry(let timeEntry):
+        case let .timeEntry(timeEntry):
             return timeEntry.title
         }
     }

@@ -65,7 +65,7 @@ struct TimePickerView: View {
                                 selectedPreset = nil
                             }
                         }
-                    
+
                     DatePicker("End Date", selection: $endDate, displayedComponents: .date)
                         .datePickerStyle(.compact)
                         .labelsHidden()
@@ -76,7 +76,7 @@ struct TimePickerView: View {
                             }
                         }
                 }
-                
+
                 HStack(spacing: 8) {
                     DatePicker("", selection: $startDate, displayedComponents: .date)
                         .datePickerStyle(.graphical)
@@ -89,7 +89,7 @@ struct TimePickerView: View {
                                 selectedPreset = nil
                             }
                         }
-                    
+
                     DatePicker("", selection: $endDate, displayedComponents: .date)
                         .datePickerStyle(.graphical)
                         .labelsHidden()

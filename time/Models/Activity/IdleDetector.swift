@@ -107,7 +107,7 @@ class IdleDetector: ObservableObject {
             isMonitoring: isMonitoring,
             isIdle: isIdle,
             isEnabled: isIdleDetectionEnabled,
-            idleThreshold: idleThreshold,
+            idleThreshold: self.idleThreshold,
             currentIdleDuration: currentIdleDuration,
             timeSinceLastActivity: timeSinceLastActivity,
             idleStartTime: idleStartTime,
@@ -136,7 +136,7 @@ class IdleDetector: ObservableObject {
             logger.info("Idle threshold changed to: \(threshold)s")
         }
 
-        if let interval = checkInterval, interval != self.checkInterval {
+        if let interval = checkInterval {
             self.checkInterval = max(10, interval) // Minimum 10 seconds
             configChanged = true
             logger.info("Check interval changed to: \(interval)s")
@@ -218,7 +218,7 @@ class IdleDetector: ObservableObject {
 
     /// Set up timer for periodic idle checking
     private func setupIdleTimer() {
-        idleTimer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
+        idleTimer = Timer.scheduledTimer(withTimeInterval: self.checkInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkForIdleState()
             }

@@ -98,7 +98,7 @@ class ActivityQueryManager: ObservableObject {
             let filteredActivities = applyInMemoryFilters(fetchedActivities)
 
             let countDescriptor = buildCountDescriptor()
-            totalCount = try context.fetchCount(countDescriptor)
+            self.totalCount = try context.fetchCount(countDescriptor)
 
             activities = filteredActivities
 
@@ -107,7 +107,7 @@ class ActivityQueryManager: ObservableObject {
         } catch {
             logger.error("Failed to refresh activities: \(error.localizedDescription)")
             activities = []
-            totalCount = 0
+            self.totalCount = 0
         }
 
         isLoading = false

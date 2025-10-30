@@ -79,7 +79,7 @@ struct DateNavigatorView: View {
         var amount = value
 
         let referenceDate = selectedDateRange.startDate
-        
+
         if let preset = selectedPreset {
             switch preset {
             case .today, .yesterday:
@@ -107,18 +107,17 @@ struct DateNavigatorView: View {
         if let newStartDate = calendar.date(byAdding: component, value: amount, to: referenceDate) {
             let newEndDate: Date
             if let preset = selectedPreset, preset.isFixedDuration {
-                 let duration = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate)
-                 newEndDate = calendar.date(byAdding: duration, to: newStartDate)!
+                let duration = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate)
+                newEndDate = calendar.date(byAdding: duration, to: newStartDate)!
             } else if selectedPreset == nil {
-                 let duration = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate)
-                 newEndDate = calendar.date(byAdding: duration, to: newStartDate)!
-            }
-            else {
+                let duration = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate)
+                newEndDate = calendar.date(byAdding: duration, to: newStartDate)!
+            } else {
                 newEndDate = Date()
             }
             selectedDateRange = AppDateRange(startDate: newStartDate, endDate: newEndDate)
         }
-        
+
         selectedPreset = nil
     }
 }

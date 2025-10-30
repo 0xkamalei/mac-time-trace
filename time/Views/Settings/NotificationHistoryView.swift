@@ -6,7 +6,7 @@ struct NotificationHistoryView: View {
     @State private var deliveredNotifications: [UNNotification] = []
     @State private var pendingNotifications: [UNNotificationRequest] = []
     @State private var selectedTab = 0
-    
+
     var body: some View {
         VStack {
             Picker("Notification Type", selection: $selectedTab) {
@@ -15,24 +15,24 @@ struct NotificationHistoryView: View {
             }
             .pickerStyle(.segmented)
             .padding()
-            
+
             TabView(selection: $selectedTab) {
                 // Delivered Notifications Tab
                 DeliveredNotificationsView(notifications: deliveredNotifications)
                     .tag(0)
-                
+
                 // Pending Notifications Tab
                 PendingNotificationsView(notifications: pendingNotifications)
                     .tag(1)
             }
-            
+
             HStack {
                 Button("Refresh") {
                     loadNotifications()
                 }
-                
+
                 Spacer()
-                
+
                 Button("Clear All Delivered") {
                     notificationManager.clearDeliveredNotifications()
                     loadNotifications()
@@ -46,12 +46,12 @@ struct NotificationHistoryView: View {
             loadNotifications()
         }
     }
-    
+
     private func loadNotifications() {
         Task {
             let delivered = await notificationManager.getDeliveredNotifications()
             let pending = await notificationManager.getPendingNotifications()
-            
+
             await MainActor.run {
                 self.deliveredNotifications = delivered
                 self.pendingNotifications = pending
@@ -64,7 +64,7 @@ struct NotificationHistoryView: View {
 
 struct DeliveredNotificationsView: View {
     let notifications: [UNNotification]
-    
+
     var body: some View {
         List {
             if notifications.isEmpty {
@@ -90,7 +90,7 @@ struct DeliveredNotificationsView: View {
 
 struct PendingNotificationsView: View {
     let notifications: [UNNotificationRequest]
-    
+
     var body: some View {
         List {
             if notifications.isEmpty {
@@ -114,7 +114,7 @@ struct NotificationRowView: View {
     let category: String
     let date: Date
     let userInfo: [AnyHashable: Any]
-    
+
     private var categoryDisplayName: String {
         switch category {
         case "TIMER_COMPLETION":
@@ -135,7 +135,7 @@ struct NotificationRowView: View {
             return "Other"
         }
     }
-    
+
     private var categoryColor: Color {
         switch category {
         case "TIMER_COMPLETION", "TIMER_INTERVAL":
@@ -152,15 +152,15 @@ struct NotificationRowView: View {
             return .gray
         }
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(title)
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 Text(categoryDisplayName)
                     .font(.caption)
                     .padding(.horizontal, 8)
@@ -169,18 +169,18 @@ struct NotificationRowView: View {
                     .foregroundColor(categoryColor)
                     .cornerRadius(4)
             }
-            
+
             Text(messageBody)
                 .font(.body)
                 .foregroundColor(.secondary)
-            
+
             HStack {
                 Text(date.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
-                
+
                 if let type = userInfo["type"] as? String {
                     Text("Type: \(type)")
                         .font(.caption)
@@ -196,7 +196,7 @@ struct NotificationRowView: View {
 
 struct PendingNotificationRowView: View {
     let request: UNNotificationRequest
-    
+
     private var scheduledDate: Date? {
         if let calendarTrigger = request.trigger as? UNCalendarNotificationTrigger {
             return calendarTrigger.nextTriggerDate()
@@ -205,33 +205,33 @@ struct PendingNotificationRowView: View {
         }
         return nil
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(request.content.title)
                     .font(.headline)
-                
+
                 Spacer()
-                
+
                 if let date = scheduledDate {
                     Text(date.formatted(date: .abbreviated, time: .shortened))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            
+
             Text(request.content.body)
                 .font(.body)
                 .foregroundColor(.secondary)
-            
+
             HStack {
                 Text("ID: \(request.identifier)")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
-                
+
                 if let type = request.content.userInfo["type"] as? String {
                     Text("Type: \(type)")
                         .font(.caption)

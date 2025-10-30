@@ -23,12 +23,12 @@ struct ProjectTimeEntryGroup {
     var activityCount: Int {
         return activities.count
     }
-    
+
     /// Number of time entries in this group
     var timeEntryCount: Int {
         return timeEntries.count
     }
-    
+
     /// Total number of items (activities + time entries) in this group
     var totalItemCount: Int {
         return activities.count + timeEntries.count
@@ -94,7 +94,7 @@ extension ProjectTimeEntryGroup {
             timeEntries: timeEntries
         )
     }
-    
+
     /// Creates a group specifically for project-assigned time entries
     static func projectTimeEntries(project: Project, timeEntries: [TimeEntry]) -> ProjectTimeEntryGroup {
         return ProjectTimeEntryGroup(
