@@ -222,9 +222,232 @@ struct TimelineView: View {
                     await viewModel.deleteTimeEntry(entry)
                 }
             }
-            
+
             // Clear selection after deletion
             selectionManager.clearSelection()
+        }
+    }
+
+    // MARK: - Timeline Rows
+
+    private var timeHeaderRow: some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("TIME")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+
+                Text(viewModel.timeScale.displayName)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(width: 140, alignment: .leading)
+            .padding(.leading, 16)
+
+            timeScaleHeaders
+        }
+        .padding(.bottom, 8)
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private var timeScaleHeaders: some View {
+        switch viewModel.timeScale {
+        case .hours:
+            ForEach(Array(0..<24), id: \.self) { hour in
+                let timeString = String(format: "%02d:00", hour)
+                VStack(spacing: 2) {
+                    Text(timeString)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 1, height: 8)
+                }
+                .frame(width: 80 * viewModel.timelineScale, alignment: .leading)
+            }
+
+        case .days:
+            ForEach(Array(0..<7), id: \.self) { day in
+                let date = Calendar.current.date(byAdding: .day, value: day, to: viewModel.selectedDateRange.start) ?? viewModel.selectedDateRange.start
+                let dayFormatter = DateFormatter()
+                dayFormatter.dateFormat = "E d"
+
+                VStack(spacing: 2) {
+                    Text(dayFormatter.string(from: date))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 1, height: 8)
+                }
+                .frame(width: 120 * viewModel.timelineScale, alignment: .leading)
+            }
+
+        case .weeks:
+            ForEach(Array(0..<4), id: \.self) { week in
+                let date = Calendar.current.date(byAdding: .weekOfYear, value: week, to: viewModel.selectedDateRange.start) ?? viewModel.selectedDateRange.start
+                let weekFormatter = DateFormatter()
+                weekFormatter.dateFormat = "MMM d"
+
+                VStack(spacing: 2) {
+                    Text("Week \(week + 1)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text(weekFormatter.string(from: date))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 1, height: 8)
+                }
+                .frame(width: 200 * viewModel.timelineScale, alignment: .leading)
+            }
+        }
+    }
+
+    private var deviceActivityRow: some View {
+        HStack(alignment: .center, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("DEVICE ACTIVITY")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+
+                Text("App Usage")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(width: 140, alignment: .leading)
+            .padding(.leading, 16)
+
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(LinearGradient(gradient: Gradient(colors: [Color.gray.opacity(0.2), Color.gray.opacity(0.4)]), startPoint: .leading, endPoint: .trailing))
+                    .frame(width: timelineWidth, height: 30)
+                    .cornerRadius(5)
+
+                ForEach(viewModel.activities, id: \.id) { activity in
+                    let position = viewModel.timeToPosition(activity.startTime)
+                    let width = viewModel.durationToWidth(activity.calculatedDuration)
+                    let appColor = colorForApp(activity.appBundleId)
+
+                    TimeBlock(
+                        color: appColor.opacity(selectionManager.selectedActivities.contains(activity.id) ? 0.8 : 0.6),
+                        position: position,
+                        width: width,
+                        iconName: activity.icon.isEmpty ? "app.fill" : activity.icon,
+                        activity: activity,
+                        onTap: { activity in
+                            handleActivityTap(activity)
+                        },
+                        onContextMenu: { activity in
+                            handleActivityContextMenu(activity)
+                        },
+                        onDragStart: { activity in
+                            handleActivityDragStart(activity)
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    private var projectRow: some View {
+        HStack(alignment: .center, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("PROJECTS")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+
+                Text("Project Timeline")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(width: 140, alignment: .leading)
+            .padding(.leading, 16)
+
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(LinearGradient(gradient: Gradient(colors: [Color.gray.opacity(0.2), Color.gray.opacity(0.4)]), startPoint: .leading, endPoint: .trailing))
+                    .frame(width: timelineWidth, height: 30)
+                    .cornerRadius(5)
+
+                // Project blocks would be rendered here based on activity-project assignments
+                // This is a placeholder implementation since we don't have project assignments yet
+                ForEach(Array(viewModel.projects.prefix(3).enumerated()), id: \.element.id) { index, project in
+                    let position = Double(index) * 0.25 + 0.1
+                    let width = 0.15
+
+                    TimeBlock(
+                        color: project.color.opacity(0.6),
+                        position: position,
+                        width: width,
+                        iconName: "folder"
+                    )
+                }
+            }
+        }
+    }
+
+    private var timeEntriesRow: some View {
+        HStack(alignment: .center, spacing: 0) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("TIME ENTRIES")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+
+                Text("Manual Entries")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(width: 140, alignment: .leading)
+            .padding(.leading, 16)
+
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(LinearGradient(gradient: Gradient(colors: [Color.gray.opacity(0.2), Color.gray.opacity(0.4)]), startPoint: .leading, endPoint: .trailing))
+                    .frame(width: timelineWidth, height: 30)
+                    .cornerRadius(5)
+
+                ForEach(viewModel.timeEntries, id: \.id) { entry in
+                    let position = viewModel.timeToPosition(entry.startTime)
+                    let width = viewModel.durationToWidth(entry.calculatedDuration)
+                    let projectColor = viewModel.projects.first { $0.id == entry.projectId }?.color ?? .blue
+
+                    TimeEntryBlock(
+                        position: position,
+                        width: width,
+                        color: selectionManager.selectedTimeEntries.contains(entry.id) ? projectColor : projectColor.opacity(0.8),
+                        title: entry.title,
+                        timeEntry: entry,
+                        onTap: { entry in
+                            handleTimeEntryTap(entry)
+                        },
+                        onContextMenu: { entry in
+                            handleTimeEntryContextMenu(entry)
+                        },
+                        onResize: { entry, startTime, endTime in
+                            handleTimeEntryResize(entry, startTime: startTime, endTime: endTime)
+                        }
+                    )
+                }
+
+                // Add button for creating new time entries
+                TimeEntryAddButton(
+                    timelineWidth: timelineWidth,
+                    onAddEntry: { startTime, endTime in
+                        let _ = viewModel.createTimeEntryAt(startTime: startTime, endTime: endTime)
+                    }
+                )
+            }
         }
     }
 }
