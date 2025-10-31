@@ -229,5 +229,5 @@ struct ActivityRowView: View {
         matchPercentage: 85.0
     )
 
-    return RuleTestResultsView(testResults: testResults)
+    RuleTestResultsView(testResults: testResults)
 }

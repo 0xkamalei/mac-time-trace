@@ -11,7 +11,12 @@
         "discover_projs",
         "list_schemes",
         "build_macos",
-        "build_run_macos"
+        "build_run_macos",
+        "get_mac_app_path",
+        "get_mac_bundle_id",
+        "launch_mac_app",
+        "test_macos",
+        "clean"
       ]
     },
     "macos-ui-automation": {

@@ -14,8 +14,6 @@ time/                     # Main application source code
 
 timeTests/               # Unit and integration tests
 time.xcodeproj/         # Xcode project configuration
-ui/                     # UI mockups and design references
-prompt/                 # Product requirements and specifications
 ```
 
 ## Models Architecture

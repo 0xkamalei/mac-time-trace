@@ -58,12 +58,8 @@ final class TimeEntry {
         return false
     }
 
-    /// Returns the project associated with this time entry (computed at runtime)
-    var project: Project? {
-        guard projectId != nil else { return nil }
-        // This will be resolved through ProjectManager when needed
-        return nil
-    }
+    // Note: Project relationship is handled through projectId and ProjectManager
+    // No direct SwiftData relationship to avoid schema conflicts
 
     // MARK: - Initialization
 
