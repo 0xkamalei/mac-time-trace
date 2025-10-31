@@ -362,7 +362,7 @@ struct RuleTestSection: View {
         action: .assignToProject("project-id")
     )
 
-    return RuleDetailView(
+    RuleDetailView(
         rule: rule,
         ruleManager: RuleManager(modelContext: ModelContext(try! ModelContainer(for: Rule.self))),
         ruleEngine: RuleEngine(

@@ -65,8 +65,8 @@ class ProductivityGoalTracker: ObservableObject {
         Task {
             do {
                 // Calculate daily progress
-                let dailyHours = try await calculateDailyHours(context: modelContext)
-                let weeklyHours = try await calculateWeeklyHours(context: modelContext)
+                let dailyHours = try await self.calculateDailyHours(context: modelContext)
+                let weeklyHours = try await self.calculateWeeklyHours(context: modelContext)
 
                 await MainActor.run {
                     self.dailyProgress = dailyHours / self.dailyGoalHours
@@ -78,7 +78,7 @@ class ProductivityGoalTracker: ObservableObject {
                 }
 
             } catch {
-                logger.error("Failed to update progress: \(error.localizedDescription)")
+                self.logger.error("Failed to update progress: \(error.localizedDescription)")
             }
         }
     }
@@ -126,7 +126,7 @@ class ProductivityGoalTracker: ObservableObject {
         return totalSeconds / 3600.0 // Convert to hours
     }
 
-    private func checkDailyGoalReached(_ currentHours: Double) {
+    @MainActor private func checkDailyGoalReached(_ currentHours: Double) {
         let wasReached = dailyGoalReached
         dailyGoalReached = currentHours >= dailyGoalHours
 
@@ -138,7 +138,7 @@ class ProductivityGoalTracker: ObservableObject {
         }
     }
 
-    private func checkWeeklyGoalReached(_ currentHours: Double) {
+    @MainActor private func checkWeeklyGoalReached(_ currentHours: Double) {
         let wasReached = weeklyGoalReached
         weeklyGoalReached = currentHours >= weeklyGoalHours
 
@@ -206,10 +206,10 @@ class ProductivityGoalTracker: ObservableObject {
 
         Task {
             do {
-                guard let modelContext = modelContext else { return }
+                guard let modelContext = self.modelContext else { return }
 
-                let dailyHours = try await calculateDailyHours(context: modelContext)
-                let topProjects = try await getTopProjectsForToday(context: modelContext)
+                let dailyHours = try await self.calculateDailyHours(context: modelContext)
+                let topProjects = try await self.getTopProjectsForToday(context: modelContext)
 
                 // Schedule for today at the specified time
                 let calendar = Calendar.current
@@ -222,7 +222,7 @@ class ProductivityGoalTracker: ObservableObject {
                                                      of: today)
                 {
                     await MainActor.run {
-                        notificationManager.scheduleDailySummary(
+                        self.notificationManager?.scheduleDailySummary(
                             totalHours: dailyHours,
                             topProjects: topProjects,
                             at: scheduledTime
@@ -231,7 +231,7 @@ class ProductivityGoalTracker: ObservableObject {
                 }
 
             } catch {
-                logger.error("Failed to schedule daily summary: \(error.localizedDescription)")
+                self.logger.error("Failed to schedule daily summary: \(error.localizedDescription)")
             }
         }
     }
@@ -245,10 +245,10 @@ class ProductivityGoalTracker: ObservableObject {
 
         Task {
             do {
-                guard let modelContext = modelContext else { return }
+                guard let modelContext = self.modelContext else { return }
 
-                let weeklyHours = try await calculateWeeklyHours(context: modelContext)
-                let topProjects = try await getTopProjectsForWeek(context: modelContext)
+                let weeklyHours = try await self.calculateWeeklyHours(context: modelContext)
+                let topProjects = try await self.getTopProjectsForWeek(context: modelContext)
 
                 // Schedule for the specified day and time
                 let calendar = Calendar.current
@@ -266,7 +266,7 @@ class ProductivityGoalTracker: ObservableObject {
                                                          matchingPolicy: .nextTime)
                 {
                     await MainActor.run {
-                        notificationManager.scheduleWeeklySummary(
+                        self.notificationManager?.scheduleWeeklySummary(
                             totalHours: weeklyHours,
                             topProjects: topProjects,
                             at: scheduledTime
@@ -275,7 +275,7 @@ class ProductivityGoalTracker: ObservableObject {
                 }
 
             } catch {
-                logger.error("Failed to schedule weekly summary: \(error.localizedDescription)")
+                self.logger.error("Failed to schedule weekly summary: \(error.localizedDescription)")
             }
         }
     }
@@ -287,7 +287,7 @@ class ProductivityGoalTracker: ObservableObject {
 
         let descriptor = FetchDescriptor<TimeEntry>(
             predicate: #Predicate<TimeEntry> { entry in
-                entry.startTime >= today && entry.startTime < tomorrow && entry.project != nil
+                entry.startTime >= today && entry.startTime < tomorrow && entry.projectId != nil
             }
         )
 
@@ -296,9 +296,10 @@ class ProductivityGoalTracker: ObservableObject {
         // Group by project and calculate total time
         var projectTimes: [String: TimeInterval] = [:]
         for entry in timeEntries {
-            guard let projectName = entry.project?.name else { continue }
+            guard let projectId = entry.projectId,
+                  let project = ProjectManager.shared.getProject(by: projectId) else { continue }
             let duration = entry.endTime.timeIntervalSince(entry.startTime)
-            projectTimes[projectName, default: 0] += duration
+            projectTimes[project.name, default: 0] += duration
         }
 
         // Sort by time and return top 3
@@ -317,7 +318,7 @@ class ProductivityGoalTracker: ObservableObject {
 
         let descriptor = FetchDescriptor<TimeEntry>(
             predicate: #Predicate<TimeEntry> { entry in
-                entry.startTime >= weekInterval.start && entry.startTime < weekInterval.end && entry.project != nil
+                entry.startTime >= weekInterval.start && entry.startTime < weekInterval.end && entry.projectId != nil
             }
         )
 
@@ -326,9 +327,10 @@ class ProductivityGoalTracker: ObservableObject {
         // Group by project and calculate total time
         var projectTimes: [String: TimeInterval] = [:]
         for entry in timeEntries {
-            guard let projectName = entry.project?.name else { continue }
+            guard let projectId = entry.projectId,
+                  let project = ProjectManager.shared.getProject(by: projectId) else { continue }
             let duration = entry.endTime.timeIntervalSince(entry.startTime)
-            projectTimes[projectName, default: 0] += duration
+            projectTimes[project.name, default: 0] += duration
         }
 
         // Sort by time and return top 3

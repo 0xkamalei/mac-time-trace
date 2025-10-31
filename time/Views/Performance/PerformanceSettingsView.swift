@@ -66,7 +66,7 @@ struct PerformanceSettingsView: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .background(Color(.systemGray6))
+        .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(8)
         .padding(.horizontal)
         .padding(.top)
@@ -256,13 +256,13 @@ struct PerformanceSettingsView: View {
             Text("Database Performance")
                 .font(.title2.bold())
 
+            let dbMetrics = databaseOptimizer.getPerformanceMetrics()
+            let queryStats = databaseOptimizer.getQueryPerformanceStats()
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Query Performance")
                         .font(.headline)
-
-                    let dbMetrics = databaseOptimizer.getPerformanceMetrics()
-                    let queryStats = databaseOptimizer.getQueryPerformanceStats()
 
                     HStack {
                         Text("Total Queries:")
@@ -347,12 +347,12 @@ struct PerformanceSettingsView: View {
             Text("Background Processing")
                 .font(.title2.bold())
 
+            let processingMetrics = backgroundProcessor.getProcessingMetrics()
+
             settingsCard {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Processing Status")
                         .font(.headline)
-
-                    let processingMetrics = backgroundProcessor.getProcessingMetrics()
 
                     HStack {
                         Text("Active Operations:")
@@ -550,7 +550,7 @@ struct PerformanceSettingsView: View {
     private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
             .padding()
-            .background(Color(.systemBackground))
+            .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(12)
             .shadow(radius: 2)
     }
@@ -630,9 +630,8 @@ struct PerformanceTestResultsView: View {
                 .padding(.vertical, 4)
             }
             .navigationTitle("Test Results")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button("Done") {
                         dismiss()
                     }

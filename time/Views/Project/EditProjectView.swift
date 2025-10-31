@@ -47,7 +47,7 @@ struct EditProjectView: View {
         var notes: String = ""
         var rating: Double = 0.5
         var archived: Bool = false
-        var rules: [Rule] = []
+        var rules: [ProjectRule] = []
         var ruleGroupCondition: RuleGroupCondition = .all
 
         var nameError: String? = nil
@@ -277,14 +277,14 @@ struct EditProjectView: View {
                         ForEach($formData.rules) { $rule in
                             HStack {
                                 Picker("Type", selection: $rule.type) {
-                                    ForEach(RuleType.allCases) { type in
+                                    ForEach(ProjectRuleType.allCases) { type in
                                         Text(type.rawValue).tag(type)
                                     }
                                 }
                                 .frame(minWidth: 150)
 
                                 Picker("Condition", selection: $rule.condition) {
-                                    ForEach(RuleCondition.allCases) { condition in
+                                    ForEach(ProjectRuleCondition.allCases) { condition in
                                         Text(condition.rawValue).tag(condition)
                                     }
                                 }
@@ -501,7 +501,7 @@ struct EditProjectView: View {
             formData.notes = ""
             formData.rating = 0.5
             formData.archived = false
-            formData.rules = [Rule()]
+            formData.rules = [ProjectRule()]
             formData.ruleGroupCondition = .all
         }
     }
@@ -841,12 +841,40 @@ struct EditProjectView: View {
     // MARK: - Rule Management
 
     private func addRule() {
-        formData.rules.append(Rule())
+        formData.rules.append(ProjectRule())
     }
 
-    private func removeRule(_ rule: Rule) {
+    private func removeRule(_ rule: ProjectRule) {
         formData.rules.removeAll { $0.id == rule.id }
     }
+}
+
+// MARK: - Rule Types
+
+enum ProjectRuleType: String, CaseIterable, Identifiable {
+    case application = "Application"
+    case windowTitle = "Window Title"
+    case url = "URL"
+    case path = "Path"
+
+    var id: String { rawValue }
+}
+
+enum ProjectRuleCondition: String, CaseIterable, Identifiable {
+    case contains = "Contains"
+    case equals = "Equals"
+    case startsWith = "Starts With"
+    case endsWith = "Ends With"
+    case matches = "Matches"
+
+    var id: String { rawValue }
+}
+
+struct ProjectRule: Identifiable {
+    let id = UUID()
+    var type: ProjectRuleType = .application
+    var condition: ProjectRuleCondition = .contains
+    var value: String = ""
 }
 
 // MARK: - Supporting Components
