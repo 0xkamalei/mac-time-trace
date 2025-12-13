@@ -1,10 +1,13 @@
 import os
 import SwiftUI
+import SwiftData
 
 struct TimeEntryListView: View {
     @StateObject private var timeEntryManager = TimeEntryManager.shared
     @StateObject private var projectManager = ProjectManager.shared
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
+
+    @Query(sort: \Project.sortOrder) private var allProjects: [Project]
 
     @State private var selectedProject: Project?
     @State private var selectedDateRange = DateInterval(start: Calendar.current.startOfDay(for: Date()), end: Date())
@@ -182,13 +185,13 @@ struct TimeEntryListView: View {
                 }
             }
         }
-        .onChange(of: selectedProject) { _ in
+        .onChange(of: selectedProject) {
             resetPagination()
         }
-        .onChange(of: selectedDateRange) { _ in
+        .onChange(of: selectedDateRange) {
             resetPagination()
         }
-        .onChange(of: searchText) { _ in
+        .onChange(of: searchText) {
             resetPagination()
         }
     }
@@ -236,7 +239,7 @@ struct TimeEntryListView: View {
 
                     Divider()
 
-                    ForEach(projectManager.projects.sorted { $0.name < $1.name }) { project in
+                    ForEach(allProjects.sorted { $0.name < $1.name }) { project in
                         Button(project.name) {
                             selectedProject = project
                         }
@@ -580,7 +583,7 @@ struct TimeEntryRowView: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
 
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
 
     private var formattedStartTime: String {
         let formatter = DateFormatter()
@@ -678,5 +681,5 @@ struct TimeEntryRowView: View {
 
 #Preview {
     TimeEntryListView()
-        .environmentObject(AppState())
+        .environment(AppState())
 }

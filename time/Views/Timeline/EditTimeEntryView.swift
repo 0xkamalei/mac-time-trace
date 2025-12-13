@@ -2,7 +2,7 @@ import os
 import SwiftUI
 
 struct EditTimeEntryView: View {
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
     @StateObject private var timeEntryManager = TimeEntryManager.shared
     @Binding var isPresented: Bool
@@ -443,6 +443,6 @@ struct EditTimeEntryView: View {
     )
 
     EditTimeEntryView(isPresented: .constant(true), timeEntry: sampleTimeEntry)
-        .environmentObject(AppState())
+        .environment(AppState())
         .environmentObject(ProjectManager.shared)
 }

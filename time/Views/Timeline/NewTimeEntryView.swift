@@ -1,11 +1,14 @@
 import os
 import SwiftUI
+import SwiftData
 
 struct NewTimeEntryView: View {
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
     @StateObject private var timeEntryManager = TimeEntryManager.shared
     @Binding var isPresented: Bool
+
+    @Query(sort: \Project.sortOrder) private var allProjects: [Project]
 
     @State private var selectedProject: Project?
     @State private var isAddingSubproject = false
@@ -21,10 +24,15 @@ struct NewTimeEntryView: View {
     @State private var isCreating: Bool = false
     @State private var validationErrors: [String] = []
 
+    init(isPresented: Binding<Bool>) {
+        _isPresented = isPresented
+    }
+
     private let logger = Logger(subsystem: "com.time-vscode.NewTimeEntryView", category: "UI")
 
     var body: some View {
         VStack(spacing: 16) {
+// ... (previous content)
             Text("New Time Entry")
                 .font(.title2)
 
@@ -45,7 +53,8 @@ struct NewTimeEntryView: View {
 
             // Validation errors
             if !validationErrors.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+
+                  VStack(alignment: .leading, spacing: 4) {
                     ForEach(validationErrors, id: \.self) { error in
                         HStack {
                             Image(systemName: "xmark.circle.fill")
@@ -70,7 +79,7 @@ struct NewTimeEntryView: View {
                         Picker("", selection: $selectedProject) {
                             Text("(No Project)").tag(nil as Project?)
 
-                            ForEach(projectManager.buildProjectTree(), id: \.id) { project in
+                            ForEach(allProjects, id: \.id) { project in
                                 ProjectPickerItem(project: project, level: 0)
                             }
                         }
@@ -363,5 +372,5 @@ extension DateComponentsFormatter {
 
 #Preview {
     NewTimeEntryView(isPresented: .constant(true))
-        .environmentObject(AppState())
+        .environment(AppState())
 }

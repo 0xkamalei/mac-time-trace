@@ -1,11 +1,14 @@
 import SwiftUI
+import SwiftData
 
 import os
 
 struct StartTimerView: View {
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
     @Binding var isPresented: Bool
+
+    @Query(sort: \Project.sortOrder) private var allProjects: [Project]
 
     @State private var selectedProject: Project? // Assuming Project model exists
     @State private var title: String = ""
@@ -16,7 +19,13 @@ struct StartTimerView: View {
     @State private var isAddingSubproject = false
     @State private var newSubprojectName = ""
 
+
+
     let durationOptions = ["30 Minutes", "1 Hour", "2 Hours", "4 Hours"]
+
+    init(isPresented: Binding<Bool>) {
+        _isPresented = isPresented
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -28,7 +37,7 @@ struct StartTimerView: View {
                     Text("Project:").frame(width: 120, alignment: .leading)
                     VStack(alignment: .leading) {
                         Picker("", selection: $selectedProject) {
-                            ForEach(projectManager.buildProjectTree()) { project in
+                            ForEach(allProjects) { project in
                                 ProjectPickerItem(project: project, level: 0)
                             }
                         }
@@ -129,9 +138,9 @@ struct StartTimerView: View {
                         }
                     }()
 
-                    // Update TimerManager's estimated duration
-                    appState.timerManager.defaultEstimatedDuration = parsedEstimatedDuration
-                    appState.timerManager.enableSounds = playSound
+                    // Update AppState's estimated duration
+                    appState.defaultEstimatedDuration = parsedEstimatedDuration
+                    appState.enableSounds = playSound
 
                     appState.startTimer(
                         project: selectedProject,
@@ -151,5 +160,5 @@ struct StartTimerView: View {
 
 #Preview {
     StartTimerView(isPresented: .constant(true))
-        .environmentObject(AppState())
+        .environment(AppState())
 }

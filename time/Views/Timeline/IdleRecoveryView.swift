@@ -1,6 +1,13 @@
 import SwiftData
 import SwiftUI
 
+/// Actions available for handling idle time
+enum IdleRecoveryAction: Equatable {
+    case ignore
+    case markAsBreak
+    case createTimeEntry(activity: String, notes: String?)
+}
+
 /// Dialog for handling idle time recovery
 struct IdleRecoveryView: View {
     let idleStartTime: Date

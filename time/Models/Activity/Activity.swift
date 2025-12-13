@@ -7,6 +7,9 @@ final class Activity {
     @Attribute(.unique) var id: UUID
     var appName: String
     var appBundleId: String
+    var appTitle: String? // Window title
+    var icon: String? // Icon reference
+    var projectId: String? // Linked Project ID (Auto-assigned)
     var duration: TimeInterval
     var startTime: Date
     var endTime: Date? // Optional for ongoing activities
@@ -37,13 +40,15 @@ final class Activity {
 
     // MARK: - Initialization
 
-    init(appName: String, appBundleId: String, duration: TimeInterval, startTime: Date, endTime: Date? = nil) {
+    init(appName: String, appBundleId: String, appTitle: String? = nil, duration: TimeInterval, startTime: Date, endTime: Date? = nil, icon: String? = nil) {
         id = UUID()
         self.appName = appName
         self.appBundleId = appBundleId
+        self.appTitle = appTitle
         self.duration = duration
         self.startTime = startTime
         self.endTime = endTime
+        self.icon = icon
     }
 
     // Convenience initializer

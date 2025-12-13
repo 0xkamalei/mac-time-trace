@@ -5,7 +5,7 @@ import SwiftData
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
 
     @StateObject private var projectManager = ProjectManager.shared
@@ -131,6 +131,17 @@ struct ContentView: View {
             projectManager.setModelContext(modelContext)
             activityQueryManager.setModelContext(modelContext)
             timeEntryManager.setModelContext(modelContext)
+            activityManager.startTracking(modelContext: modelContext)
+            
+            // Initialize AutoClassificationService
+            AutoClassificationService.shared.loadRules(modelContext: modelContext)
+            
+            // Allow TimeEntryManager to access ActivityManager if needed, or vice versa
+            // For now, they are independent singletons initialized with context
+            
+            if !WindowMonitor.shared.checkAccessibilityPermissions() {
+                Logger.ui.warning("Accessibility permissions missing. Window titles will not be tracked.")
+            }
         }
         .onChange(of: appState.selectedProject) { _, newProject in
             activityQueryManager.setProjectFilter(newProject)
@@ -154,5 +165,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(AppState())
+        .environment(AppState())
 }

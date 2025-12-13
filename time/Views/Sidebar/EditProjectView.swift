@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 import os
 
@@ -87,8 +88,15 @@ struct EditProjectView: View {
 
     let mode: Mode
     @Binding var isPresented: Bool
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
+
+    @Query(sort: \Project.sortOrder) private var allProjects: [Project]
+
+    init(mode: Mode, isPresented: Binding<Bool>) {
+        self.mode = mode
+        _isPresented = isPresented
+    }
 
     @State private var formData = ProjectFormData()
     @State private var isRuleEditorExpanded: Bool = true
@@ -464,10 +472,10 @@ struct EditProjectView: View {
     private var availableParentProjects: [Project] {
         switch mode {
         case .create:
-            return projectManager.buildProjectTree()
+            return allProjects
         case let .edit(project):
             let excludedIds = Set([project.id] + project.descendants.map { $0.id })
-            return projectManager.projects.filter { !excludedIds.contains($0.id) }
+            return allProjects.filter { !excludedIds.contains($0.id) }
         }
     }
 
@@ -478,7 +486,7 @@ struct EditProjectView: View {
             return []
         case let .edit(project):
             let excludedIds = Set([project.id] + project.descendants.map { $0.id })
-            return projectManager.projects.filter { !excludedIds.contains($0.id) }
+            return allProjects.filter { !excludedIds.contains($0.id) }
         }
     }
 
@@ -539,7 +547,7 @@ struct EditProjectView: View {
             return
         }
 
-        let existingProjects = projectManager.projects.filter { project in
+        let existingProjects = allProjects.filter { project in
             project.parentID == formData.parentID &&
                 project.name.lowercased() == trimmedName.lowercased()
         }
@@ -566,7 +574,7 @@ struct EditProjectView: View {
             return
         }
 
-        guard let parent = projectManager.projects.first(where: { $0.id == parentID }) else {
+        guard let parent = allProjects.first(where: { $0.id == parentID }) else {
             formData.parentError = "Selected parent project not found"
             return
         }
@@ -693,7 +701,7 @@ struct EditProjectView: View {
     private func createNewProjectAsync() async throws {
         let trimmedName = formData.name.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let existingProjects = projectManager.projects.filter { project in
+        let existingProjects = allProjects.filter { project in
             project.parentID == formData.parentID &&
                 project.name.lowercased() == trimmedName.lowercased()
         }
@@ -702,21 +710,14 @@ struct EditProjectView: View {
             throw ProjectCreationError.duplicateName
         }
 
-        let newProject = Project(
-            name: trimmedName,
-            color: formData.color,
-            parentID: formData.parentID,
-            sortOrder: calculateNextSortOrder()
-        )
-
-        _ = try await projectManager.createProject(name: newProject.name, color: newProject.color, parentID: newProject.parentID)
+        _ = try await projectManager.createProject(name: trimmedName, color: formData.color, parentID: formData.parentID)
     }
 
     /// Updates an existing project asynchronously
     private func updateExistingProjectAsync(_ project: Project) async throws {
         let trimmedName = formData.name.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let existingProjects = projectManager.projects.filter { existingProject in
+        let existingProjects = allProjects.filter { existingProject in
             existingProject.parentID == formData.parentID &&
                 existingProject.name.lowercased() == trimmedName.lowercased() &&
                 existingProject.id != project.id
@@ -726,50 +727,46 @@ struct EditProjectView: View {
             throw ProjectCreationError.duplicateName
         }
 
-        await MainActor.run {
-            project.name = trimmedName
-            project.color = formData.color
-
-            if project.parentID != formData.parentID {
-                if let oldParentID = project.parentID,
-                   let oldParent = projectManager.projects.first(where: { $0.id == oldParentID })
-                {
-                    oldParent.removeChild(project)
-                }
-
-                project.parentID = formData.parentID
-
-                if let newParentID = formData.parentID,
-                   let newParent = projectManager.projects.first(where: { $0.id == newParentID })
-                {
-                    newParent.addChild(project)
-                }
-
-                project.sortOrder = calculateNextSortOrder()
-            }
-
-            appState.objectWillChange.send()
+        // Apply updates
+        try await projectManager.updateProject(
+            project,
+            name: trimmedName,
+            color: formData.color,
+            parentID: formData.parentID
+        )
+        
+        // Ensure sort order is updated if parent changed
+        if project.parentID != formData.parentID {
+            let newOrder = calculateNextSortOrder()
+            // We need to update sortOrder separately or passed to manager. 
+            // Manager doesn't take sortOrder in updateProject.
+            // Let's rely on manager or update manually then save.
+            project.sortOrder = newOrder
+            // Helper to save since we did manual update
+            try await projectManager.reorderProject(project, to: newOrder, in: formData.parentID)
         }
+        
+
     }
 
     /// Calculates the next sort order for the current parent
     private func calculateNextSortOrder() -> Int {
-        let siblings = projectManager.projects.filter { $0.parentID == formData.parentID }
-        return siblings.map { $0.sortOrder }.max() ?? 0 + 1
+        let siblings = allProjects.filter { $0.parentID == formData.parentID }
+        return (siblings.map { $0.sortOrder }.max() ?? 0) + 1
     }
 
     // MARK: - Delete Functionality
 
-    /// Deletes the project with the selected strategy
+    /// Deletes the project
     private func deleteProject() {
         guard case let .edit(project) = mode else { return }
-
+        
         Task {
             await deleteProjectAsync(project)
         }
     }
 
-    /// Deletes the project asynchronously with error handling
+    /// Deletes the project asynchronously
     private func deleteProjectAsync(_ project: Project) async {
         isDeleting = true
         submitError = nil
@@ -780,39 +777,6 @@ struct EditProjectView: View {
 
         do {
             try await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-
-            let children = await MainActor.run { project.children }
-
-            switch deletionStrategy {
-            case .deleteChildren:
-                for child in children {
-                    // Clear selection if deleting selected project
-                    if appState.selectedProject?.id == child.id {
-                        await MainActor.run { appState.clearSelection() }
-                    }
-                    try await projectManager.deleteProject(child)
-                }
-
-            case .moveChildrenToParent:
-                await MainActor.run {
-                    for child in children {
-                        child.parentID = project.parentID
-                        child.sortOrder = calculateNextSortOrderForParent(project.parentID)
-                    }
-                }
-
-            case .moveChildrenToRoot:
-                await MainActor.run {
-                    for child in children {
-                        child.parentID = nil
-                        child.sortOrder = calculateNextSortOrderForParent(nil)
-                    }
-                }
-            }
-
-            if let targetProject = timeEntryReassignmentTarget {
-                Logger.ui.debug("Would reassign time entries from \(project.name) to \(targetProject.name)")
-            }
 
             // Clear selection if deleting selected project
             if appState.selectedProject?.id == project.id {
@@ -834,22 +798,22 @@ struct EditProjectView: View {
 
     /// Calculates the next sort order for a specific parent
     private func calculateNextSortOrderForParent(_ parentID: String?) -> Int {
-        let siblings = projectManager.projects.filter { $0.parentID == parentID }
+        let siblings = allProjects.filter { $0.parentID == parentID }
         return siblings.map { $0.sortOrder }.max() ?? 0 + 1
     }
 
     // MARK: - Rule Management
 
-    private func addRule() {
+    func addRule() {
         formData.rules.append(ProjectRule())
     }
 
-    private func removeRule(_ rule: ProjectRule) {
+    func removeRule(_ rule: ProjectRule) {
         formData.rules.removeAll { $0.id == rule.id }
     }
 }
 
-// MARK: - Rule Types
+// MARK: - Rule Types and Components
 
 enum ProjectRuleType: String, CaseIterable, Identifiable {
     case application = "Application"
@@ -876,6 +840,7 @@ struct ProjectRule: Identifiable {
     var condition: ProjectRuleCondition = .contains
     var value: String = ""
 }
+
 
 // MARK: - Supporting Components
 
@@ -932,21 +897,9 @@ struct ProjectDeleteConfirmationDialog: View {
 
     var body: some View {
         Group {
-            if !project.children.isEmpty {
-                Text("This project has \(project.children.count) child project(s). What should happen to them?")
-
-                ForEach(EditProjectView.DeletionStrategy.allCases) { strategy in
-                    Button(strategy.rawValue) {
-                        deletionStrategy = strategy
-                        onConfirm()
-                    }
-                }
-            } else {
-                Button("Delete", role: .destructive) {
-                    onConfirm()
-                }
+            Button("Delete", role: .destructive) {
+                onConfirm()
             }
-
             Button("Cancel", role: .cancel) {}
         }
     }
@@ -999,11 +952,11 @@ struct AsyncButton: View {
 
 #Preview("Create Mode") {
     EditProjectView(mode: .create(parentID: nil), isPresented: .constant(true))
-        .environmentObject(AppState())
+        .environment(AppState())
 }
 
 #Preview("Edit Mode") {
     let sampleProject = Project(name: "Sample Project", color: .blue)
     return EditProjectView(mode: .edit(sampleProject), isPresented: .constant(true))
-        .environmentObject(AppState())
+        .environment(AppState())
 }

@@ -52,14 +52,41 @@ class ActivityManager: ObservableObject {
             }
         }
         notificationObservers.append(sleepObserver)
+        
+        // Idle Observers
+        let idleObserver = notificationCenter.addObserver(
+            forName: .userDidBecomeIdle,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                self?.handleUserIdle(notification)
+            }
+        }
+        notificationObservers.append(idleObserver)
+
+        let activeObserver = notificationCenter.addObserver(
+            forName: .userDidBecomeActive,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor in
+                self?.handleUserActive(notification)
+            }
+        }
+        notificationObservers.append(activeObserver)
+        
+        IdleMonitor.shared.startMonitoring()
 
         logger.info("Started tracking app activities")
     }
-
+    
     /// Stop tracking app activity
-    func stopTracking(modelContext: ModelContext) {
+    func stopTracking(modelContext: ModelContext, endTime: Date = Date()) {
+        IdleMonitor.shared.stopMonitoring()
+        
         if let current = self.currentActivity {
-            current.endTime = Date()
+            current.endTime = endTime
             current.duration = current.calculatedDuration
 
             if current.duration > 0 {
@@ -82,7 +109,7 @@ class ActivityManager: ObservableObject {
     }
 
     /// Track an app switch
-    func trackAppSwitch(newApp: String, modelContext: ModelContext) {
+    func trackAppSwitch(newApp: String, title: String? = nil, modelContext: ModelContext) {
         self.modelContext = modelContext
 
         // Save the previous activity
@@ -111,13 +138,24 @@ class ActivityManager: ObservableObject {
         let newActivity = Activity(
             appName: appName,
             appBundleId: newApp,
+            appTitle: title,
             duration: 0,
             startTime: now,
             endTime: nil
         )
 
+        // Attempt Auto-Classification
+        if let projectId = AutoClassificationService.shared.classify(activity: newActivity) {
+            newActivity.projectId = projectId
+            logger.info("Auto-classified activity to project: \(projectId)")
+        }
+
         self.currentActivity = newActivity
-        logger.info("Started tracking: \(appName)")
+        if let title = title {
+            logger.info("Started tracking: \(appName) - \(title)")
+        } else {
+            logger.info("Started tracking: \(appName)")
+        }
     }
 
     // MARK: - Private Methods
@@ -126,14 +164,53 @@ class ActivityManager: ObservableObject {
         guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
               let bundleId = app.bundleIdentifier else { return }
 
+        let windowTitle = WindowMonitor.shared.getActiveWindowTitle(for: app.processIdentifier)
+
         if let modelContext = modelContext {
-            trackAppSwitch(newApp: bundleId, modelContext: modelContext)
+            trackAppSwitch(newApp: bundleId, title: windowTitle, modelContext: modelContext)
         }
     }
 
     private func handleSystemSleep() async {
         if let modelContext = modelContext {
             stopTracking(modelContext: modelContext)
+        }
+    }
+
+    private func handleUserIdle(_ notification: Notification) {
+        guard let idleStartTime = notification.userInfo?["idleStartTime"] as? Date else { return }
+        logger.info("Handling user idle (start: \(idleStartTime))")
+        
+        if let modelContext = modelContext {
+            // Stop tracking, setting end time to when idle started
+            // But don't remove observers, just stop current activity
+            if let current = self.currentActivity {
+                current.endTime = idleStartTime
+                current.duration = current.calculatedDuration
+                
+                if current.duration > 0 {
+                    do {
+                        try modelContext.save()
+                        logger.info("Saved activity before idle: \(current.appName)")
+                    } catch {
+                        logger.error("Failed to save activity: \(error)")
+                    }
+                }
+                self.currentActivity = nil
+            }
+        }
+    }
+
+    private func handleUserActive(_ notification: Notification) {
+        logger.info("Handling user active")
+        
+        // Resume tracking frontmost app
+        if let app = NSWorkspace.shared.frontmostApplication,
+           let bundleId = app.bundleIdentifier,
+           let modelContext = modelContext {
+             
+             let windowTitle = WindowMonitor.shared.getActiveWindowTitle(for: app.processIdentifier)
+             trackAppSwitch(newApp: bundleId, title: windowTitle, modelContext: modelContext)
         }
     }
 }

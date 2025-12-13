@@ -9,7 +9,7 @@ import UniformTypeIdentifiers
 
 struct ProjectRowView: View {
     var project: Project
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
 
     private let level: Int
@@ -204,7 +204,7 @@ struct ProjectRowView: View {
     }
 
     private func moveChildProjects(from source: IndexSet, to destination: Int) {
-        let projectsToReorder = projectManager.projects.filter { $0.parentID == project.id }.sorted { $0.sortOrder < $1.sortOrder }
+        let projectsToReorder = project.children
 
         guard let sourceIndex = source.first,
               sourceIndex < projectsToReorder.count
@@ -540,4 +540,12 @@ struct ProjectLabelInteractionModifier: ViewModifier {
             }
             .accessibilityAction(.showMenu) {}
     }
+}
+// MARK: - Drop Position Enum
+
+enum DropPosition: String {
+    case above
+    case below
+    case inside
+    case invalid
 }
