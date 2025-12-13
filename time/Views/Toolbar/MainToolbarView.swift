@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 
 struct MainToolbarView: ToolbarContent {
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
     @Binding var isAddingProject: Bool
     @Binding var isStartingTimer: Bool

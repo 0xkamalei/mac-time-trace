@@ -47,8 +47,15 @@ enum TimeEntryValidationResult {
     case failure(TimeEntryError)
 }
 
+extension NSNotification.Name {
+    static let timeEntryDidChange = NSNotification.Name("timeEntryDidChange")
+    static let timeEntryWasDeleted = NSNotification.Name("timeEntryWasDeleted")
+    static let timeEntryFilterChanged = NSNotification.Name("timeEntryFilterChanged")
+}
+
 @MainActor
 class TimeEntryManager: ObservableObject {
+
     // MARK: - Singleton
 
     static let shared = TimeEntryManager()
@@ -162,7 +169,9 @@ class TimeEntryManager: ObservableObject {
         // Cancel existing timer and start new one for debouncing
         notificationDebounceTimer?.invalidate()
         notificationDebounceTimer = Timer.scheduledTimer(withTimeInterval: notificationDebounceInterval, repeats: false) { [weak self] _ in
-            self?.sendDebouncedNotification()
+            Task { @MainActor in
+                self?.sendDebouncedNotification()
+            }
         }
     }
 

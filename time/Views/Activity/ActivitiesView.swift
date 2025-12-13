@@ -90,7 +90,7 @@ struct ActivitiesView: View {
         .padding(.vertical, 12)
         .background(Color(.controlBackgroundColor))
         .overlay(Divider(), alignment: .bottom)
-    }/
+    }
 
     // MARK: - Methods
 

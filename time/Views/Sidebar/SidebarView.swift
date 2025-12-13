@@ -6,7 +6,7 @@ import os
 struct SidebarView: View {
     @State private var isMyProjectsExpanded: Bool = true
     @State private var showingCreateProject = false
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
 
     @Query(sort: \Project.sortOrder) private var projects: [Project]
@@ -30,7 +30,9 @@ struct SidebarView: View {
     }
 
     var body: some View {
-        List(selection: $appState.selectedSidebar) {
+        @Bindable var bindableAppState = appState
+        
+        List(selection: $bindableAppState.selectedSidebar) {
             Section {
                 NavigationLink(value: "Activities") {
                     Label("Activities", systemImage: "clock")
@@ -143,4 +145,8 @@ struct SidebarView: View {
             }
         }
     }
+}
+
+extension Notification.Name {
+    static let projectDidChange = Notification.Name("projectDidChange")
 }

@@ -3,6 +3,9 @@ import Foundation
 struct AppDateRange: Equatable {
     let startDate: Date
     let endDate: Date
+    
+    var start: Date { startDate }
+    var end: Date { endDate }
 }
 
 enum AppDateRangePreset: String, CaseIterable {

@@ -4,13 +4,12 @@ import os
 
 struct ProjectRightClickMenu: View {
     let project: Project
-    @EnvironmentObject private var appState: AppState
+    @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
     @State private var showingEditProject = false
     @State private var showingDeleteConfirmation = false
     @State private var showingCreateChild = false
-    @State private var deletionStrategy: DeletionStrategy = .moveChildrenToParent
-    @State private var timeEntryReassignmentTarget: Project? = nil
+    // Strategy and assignment removed for simplified version of ProjectManager
 
     var body: some View {
         Group {
@@ -55,9 +54,9 @@ struct ProjectRightClickMenu: View {
     }
 
     /// Available projects for time entry reassignment (excludes the project being deleted)
-    private var availableProjectsForReassignment: [Project] {
-        return projectManager.projects.filter { $0.id != project.id }
-    }
+    // private var availableProjectsForReassignment: [Project] {
+    //    return projectManager.projects.filter { $0.id != project.id }
+    // }
 
     private func deleteProject() {
         Task {
@@ -66,7 +65,8 @@ struct ProjectRightClickMenu: View {
                 if appState.selectedProject?.id == project.id {
                     await MainActor.run { appState.clearSelection() }
                 }
-                try await projectManager.deleteProject(project, strategy: deletionStrategy)
+                // use simplified delete without strategy
+                try await projectManager.deleteProject(project)
             } catch {
                 Logger.ui.error("Failed to delete project: \(error)")
             }

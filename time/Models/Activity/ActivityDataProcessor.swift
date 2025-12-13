@@ -255,4 +255,48 @@ class ActivityDataProcessor {
         ]
         return browsers.contains(bundleId)
     }
+
+    // MARK: - Activity Matching
+
+    /// Matches activities to time entries based on time overlap
+    /// - Parameters:
+    ///   - activities: List of activities to match
+    ///   - timeEntries: List of time entries to match against
+    /// - Returns: Dictionary mapping Activity ID to list of matches, sorted by overlap duration (descending)
+    static func matchActivitiesToTimeEntries(_ activities: [Activity], _ timeEntries: [TimeEntry]) -> [UUID: [ActivityMatch]] {
+        var results: [UUID: [ActivityMatch]] = [:]
+
+        for activity in activities {
+            // ongoing activity (nil endTime) should be ignored
+            guard let activityEnd = activity.endTime else { continue }
+            
+            var matches: [ActivityMatch] = []
+
+            for entry in timeEntries {
+                // Calculate overlap
+                let start = max(activity.startTime, entry.startTime)
+                let end = min(activityEnd, entry.endTime)
+
+                // edge-touching intervals (end == start) count as no overlap
+                if start < end {
+                    let overlap = end.timeIntervalSince(start)
+                    matches.append(ActivityMatch(timeEntry: entry, overlapDuration: overlap))
+                }
+            }
+
+            if !matches.isEmpty {
+                // Sort by overlap duration desc
+                matches.sort { $0.overlapDuration > $1.overlapDuration }
+                results[activity.id] = matches
+            }
+        }
+
+        return results
+    }
+}
+
+/// Represents a match between an activity and a time entry
+struct ActivityMatch {
+    let timeEntry: TimeEntry
+    let overlapDuration: TimeInterval
 }

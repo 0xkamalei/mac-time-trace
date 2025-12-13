@@ -13,7 +13,7 @@ struct time_vscodeApp: App {
             Activity.self,
             Project.self,
             TimeEntry.self,
-            TimerSession.self,
+            Rule.self,
         ])
 
         let modelConfiguration = ModelConfiguration(
@@ -29,15 +29,16 @@ struct time_vscodeApp: App {
             return container
         } catch {
             logger.error("Could not create ModelContainer: \(error.localizedDescription)")
+            fatalError("Could not create ModelContainer: \(error.localizedDescription)")
         }
     }()
 
-    @StateObject private var appState = AppState()
+    @State private var appState = AppState()
 
     var body: some Scene {
         WindowGroup("") {
             ContentView()
-                .environmentObject(appState)
+                .environment(appState)
         }
         .modelContainer(sharedModelContainer)
         .commands {
