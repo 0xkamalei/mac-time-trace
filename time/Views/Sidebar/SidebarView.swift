@@ -60,18 +60,6 @@ struct SidebarView: View {
                     HStack {
                         Image(systemName: "folder")
                         Text("My Projects")
-                        Spacer()
-                        Button(action: {
-                            showingCreateProject = true
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundColor(.accentColor)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Create New Project")
-                        .accessibilityHint("Creates a new project")
-                        .help("Create New Project")
-                        .accessibilityIdentifier("sidebar.createProjectButton")
                     }
                     .contentShape(Rectangle())
                     .background(appState.isSpecialItemSelected("My Projects") ? Color.accentColor.opacity(0.2) : Color.clear)
@@ -85,6 +73,17 @@ struct SidebarView: View {
         }
         .listStyle(SidebarListStyle())
         .navigationTitle("Time Tracker")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(action: {
+                    showingCreateProject = true
+                }) {
+                    Label("New Project", systemImage: "plus.rectangle.on.folder")
+                }
+                .accessibilityIdentifier("sidebar.newProjectButton")
+                .help("Create a new project")
+            }
+        }
         .sheet(isPresented: $showingCreateProject) {
             EditProjectView(mode: .create, isPresented: $showingCreateProject)
         }

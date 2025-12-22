@@ -22,70 +22,78 @@ struct TimePickerView: View {
         let previousPeriodPresets: [AppDateRangePreset] = [.yesterday, .lastWeek, .lastMonth]
 
         HStack(alignment: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 4) {
+            // 左侧预设列表 - Past X Days
+            VStack(alignment: .leading, spacing: 2) {
                 ForEach(pastDayPresets, id: \.self) { preset in
                     PresetButton(title: preset.rawValue, preset: preset, selectedPreset: $selectedPreset) {
                         updateDateRange(for: preset)
                     }
                 }
-                Spacer()
             }
-            .padding(12)
-            .frame(width: 120)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(width: 110)
 
             Divider()
 
-            VStack(alignment: .leading, spacing: 4) {
+            // 中间预设列表 - This/Last Period
+            VStack(alignment: .leading, spacing: 2) {
                 ForEach(currentPeriodPresets, id: \.self) { preset in
                     PresetButton(title: preset.rawValue, preset: preset, selectedPreset: $selectedPreset) {
                         updateDateRange(for: preset)
                     }
                 }
-                Divider().padding(.vertical, 4)
+                Divider().padding(.vertical, 2)
                 ForEach(previousPeriodPresets, id: \.self) { preset in
                     PresetButton(title: preset.rawValue, preset: preset, selectedPreset: $selectedPreset) {
                         updateDateRange(for: preset)
                     }
                 }
-                Spacer()
             }
-            .padding(12)
-            .frame(width: 120)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(width: 110)
 
             Divider()
 
-            VStack(alignment: .center, spacing: 8) {
-                HStack(spacing: 8) {
-                    DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
-                        .datePickerStyle(.compact)
-                        .labelsHidden()
-                        .onChange(of: startDate) { _, newValue in
-                            DispatchQueue.main.async {
-                                selectedDateRange = AppDateRange(startDate: newValue, endDate: endDate)
-                                selectedPreset = nil
-                            }
-                        }
-
-                    DatePicker("End Date", selection: $endDate, displayedComponents: .date)
-                        .datePickerStyle(.compact)
-                        .labelsHidden()
-                        .onChange(of: endDate) { _, newValue in
-                            DispatchQueue.main.async {
-                                selectedDateRange = AppDateRange(startDate: startDate, endDate: newValue)
-                                selectedPreset = nil
-                            }
-                        }
+            // 右侧日期选择器
+            VStack(alignment: .center, spacing: 4) {
+                // 日期范围显示
+                HStack(spacing: 4) {
+                    Text(formatDate(startDate))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.primary)
+                    Text("–")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                    Text(formatDate(endDate))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.primary)
                 }
+                .padding(.top, 4)
 
-                HStack(spacing: 8) {
+                HStack(spacing: 4) {
                     DatePicker("", selection: $startDate, displayedComponents: .date)
                         .datePickerStyle(.graphical)
                         .labelsHidden()
-                        .scaleEffect(0.9)
                         .clipped()
                         .onChange(of: startDate) { _, newValue in
                             DispatchQueue.main.async {
-                                selectedDateRange = AppDateRange(startDate: newValue, endDate: endDate)
+                                let calendar = Calendar.current
+                                let startOfDay = calendar.startOfDay(for: newValue)
+                                let endOfDayRange = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+                                
+                                // 检查当前是否是单日模式
+                                let currentStartOfDay = calendar.startOfDay(for: selectedDateRange.startDate)
+                                let currentEndOfDayRange = calendar.date(byAdding: .day, value: 1, to: currentStartOfDay)!
+                                let isSingleDayMode = calendar.isDate(selectedDateRange.endDate, equalTo: currentEndOfDayRange, toGranularity: .minute)
+                                
+                                if isSingleDayMode || calendar.isDate(selectedDateRange.startDate, inSameDayAs: selectedDateRange.endDate) {
+                                    endDate = endOfDayRange
+                                    selectedDateRange = AppDateRange(startDate: startOfDay, endDate: endOfDayRange)
+                                } else {
+                                    selectedDateRange = AppDateRange(startDate: startOfDay, endDate: endDate)
+                                }
                                 selectedPreset = nil
                             }
                         }
@@ -93,20 +101,22 @@ struct TimePickerView: View {
                     DatePicker("", selection: $endDate, displayedComponents: .date)
                         .datePickerStyle(.graphical)
                         .labelsHidden()
-                        .scaleEffect(0.9)
                         .clipped()
                         .onChange(of: endDate) { _, newValue in
                             DispatchQueue.main.async {
-                                selectedDateRange = AppDateRange(startDate: startDate, endDate: newValue)
+                                let calendar = Calendar.current
+                                let startOfDay = calendar.startOfDay(for: newValue)
+                                let endOfDayRange = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+                                selectedDateRange = AppDateRange(startDate: startDate, endDate: endOfDayRange)
                                 selectedPreset = nil
                             }
                         }
                 }
-                Spacer()
             }
-            .padding(12)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
         }
-        .padding(.vertical, 4)
+        .padding(.top, 8)
     }
 
     private func updateDateRange(for preset: AppDateRangePreset) {
@@ -114,6 +124,12 @@ struct TimePickerView: View {
         startDate = range.startDate
         endDate = range.endDate
         selectedDateRange = range
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd"
+        return formatter.string(from: date)
     }
 }
 
@@ -131,11 +147,11 @@ struct PresetButton: View {
             Text(title)
                 .font(.system(size: 11))
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(height: 16)
+                .frame(height: 18)
                 .padding(.horizontal, 6)
                 .background(selectedPreset == preset ? Color.accentColor : Color.clear)
                 .foregroundColor(selectedPreset == preset ? .white : .primary)
-                .cornerRadius(3)
+                .cornerRadius(4)
         }
         .buttonStyle(.plain)
     }
@@ -147,43 +163,66 @@ extension AppDateRangePreset {
         let calendar = Calendar.current
 
         switch self {
-        case .today: 
-            return AppDateRange(startDate: calendar.startOfDay(for: now), endDate: calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!.addingTimeInterval(-1))
-        case .thisWeek: 
+        case .today:
+            // 今天：00:00 到 明天 00:00
+            let startOfDay = calendar.startOfDay(for: now)
+            let endOfDayRange = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+            return AppDateRange(startDate: startOfDay, endDate: endOfDayRange)
+        case .thisWeek:
             let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)
             let startOfWeek = calendar.date(from: components)!
-            let endOfWeek = calendar.date(byAdding: .day, value: 7, to: startOfWeek)!.addingTimeInterval(-1)
+            let endOfWeek = calendar.date(byAdding: .weekOfYear, value: 1, to: startOfWeek)!
             return AppDateRange(startDate: startOfWeek, endDate: endOfWeek)
-        case .thisMonth: 
+        case .thisMonth:
             let components = calendar.dateComponents([.year, .month], from: now)
             let startOfMonth = calendar.date(from: components)!
-            let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!.addingTimeInterval(-1)
+            let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
             return AppDateRange(startDate: startOfMonth, endDate: endOfMonth)
-        case .thisQuarter: 
+        case .thisQuarter:
             let quarter = (calendar.component(.month, from: now) - 1) / 3 + 1
             let startOfYear = calendar.date(from: calendar.dateComponents([.year], from: now))!
             let startOfQuarter = calendar.date(byAdding: .month, value: (quarter - 1) * 3, to: startOfYear)!
-            let endOfQuarter = calendar.date(byAdding: .month, value: 3, to: startOfQuarter)!.addingTimeInterval(-1)
+            let endOfQuarter = calendar.date(byAdding: .month, value: 3, to: startOfQuarter)!
             return AppDateRange(startDate: startOfQuarter, endDate: endOfQuarter)
-        case .thisYear: 
+        case .thisYear:
             let startOfYear = calendar.date(from: calendar.dateComponents([.year], from: now))!
-            let endOfYear = calendar.date(byAdding: .year, value: 1, to: startOfYear)!.addingTimeInterval(-1)
+            let endOfYear = calendar.date(byAdding: .year, value: 1, to: startOfYear)!
             return AppDateRange(startDate: startOfYear, endDate: endOfYear)
-        case .yesterday: let yesterday = calendar.date(byAdding: .day, value: -1, to: now)!
-            return AppDateRange(startDate: calendar.startOfDay(for: yesterday), endDate: calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: yesterday))!)
-        case .lastWeek: let lastWeek = calendar.date(byAdding: .weekOfYear, value: -1, to: now)!
+        case .yesterday:
+            // 昨天：昨天 00:00 到 今天 00:00
+            let today = calendar.startOfDay(for: now)
+            let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+            return AppDateRange(startDate: yesterday, endDate: today)
+        case .lastWeek:
+            let lastWeek = calendar.date(byAdding: .weekOfYear, value: -1, to: now)!
             let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: lastWeek))!
-            let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek)!
+            let endOfWeek = calendar.date(byAdding: .weekOfYear, value: 1, to: startOfWeek)!
             return AppDateRange(startDate: startOfWeek, endDate: endOfWeek)
-        case .lastMonth: let lastMonth = calendar.date(byAdding: .month, value: -1, to: now)!
+        case .lastMonth:
+            let lastMonth = calendar.date(byAdding: .month, value: -1, to: now)!
             let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: lastMonth))!
             let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
             return AppDateRange(startDate: startOfMonth, endDate: endOfMonth)
-        case .past7Days: return AppDateRange(startDate: calendar.date(byAdding: .day, value: -7, to: now)!, endDate: now)
-        case .past15Days: return AppDateRange(startDate: calendar.date(byAdding: .day, value: -15, to: now)!, endDate: now)
-        case .past30Days: return AppDateRange(startDate: calendar.date(byAdding: .day, value: -30, to: now)!, endDate: now)
-        case .past90Days: return AppDateRange(startDate: calendar.date(byAdding: .day, value: -90, to: now)!, endDate: now)
-        case .past365Days: return AppDateRange(startDate: calendar.date(byAdding: .day, value: -365, to: now)!, endDate: now)
+        case .past7Days:
+            let startDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -6, to: now)!)
+            let endDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+            return AppDateRange(startDate: startDate, endDate: endDate)
+        case .past15Days:
+            let startDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -14, to: now)!)
+            let endDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+            return AppDateRange(startDate: startDate, endDate: endDate)
+        case .past30Days:
+            let startDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -29, to: now)!)
+            let endDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+            return AppDateRange(startDate: startDate, endDate: endDate)
+        case .past90Days:
+            let startDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -89, to: now)!)
+            let endDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+            return AppDateRange(startDate: startDate, endDate: endDate)
+        case .past365Days:
+            let startDate = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -364, to: now)!)
+            let endDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+            return AppDateRange(startDate: startDate, endDate: endDate)
         }
     }
 }

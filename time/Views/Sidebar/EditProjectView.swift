@@ -150,55 +150,6 @@ struct EditProjectView: View {
                         .padding()
                         .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
                         .cornerRadius(12)
-
-                        // Productivity Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Advanced Settings")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                            
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Text("Productivity Rating")
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    Text(formData.productivityRating > 0.5 ? "PRODUCTIVE" : "UNPRODUCTIVE")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 2)
-                                        .background(formData.productivityRating > 0.5 ? Color.green.opacity(0.2) : Color.orange.opacity(0.2))
-                                        .foregroundColor(formData.productivityRating > 0.5 ? .green : .orange)
-                                        .cornerRadius(4)
-                                }
-                                
-                                Slider(value: $formData.productivityRating, in: 0...1) {
-                                    Text("Productivity Rating")
-                                } minimumValueLabel: {
-                                    Text("Low").font(.caption2).foregroundColor(.secondary)
-                                } maximumValueLabel: {
-                                    Text("High").font(.caption2).foregroundColor(.secondary)
-                                }
-                                .accentColor(formData.productivityRating > 0.5 ? .green : .orange)
-                                
-                                Divider()
-                                    .padding(.vertical, 4)
-                                
-                                Toggle(isOn: $formData.archived) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Archive Project")
-                                            .font(.body)
-                                        Text("Archived projects are hidden from most views")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .toggleStyle(.checkbox)
-                            }
-                        }
-                        .padding()
-                        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-                        .cornerRadius(12)
                     }
 
                     if case let .edit(project) = mode {

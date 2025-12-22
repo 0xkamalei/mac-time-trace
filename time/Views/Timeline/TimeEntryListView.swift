@@ -267,7 +267,10 @@ struct TimeEntryListView: View {
                     selection: Binding(
                         get: { selectedDateRange.start },
                         set: { newStart in
-                            selectedDateRange = DateInterval(start: newStart, end: selectedDateRange.end)
+                            // Ensure start <= end to avoid DateInterval crash
+                            let start = min(newStart, selectedDateRange.end)
+                            let end = max(newStart, selectedDateRange.end)
+                            selectedDateRange = DateInterval(start: start, end: end)
                         }
                     ),
                     displayedComponents: .date
@@ -283,7 +286,10 @@ struct TimeEntryListView: View {
                     selection: Binding(
                         get: { selectedDateRange.end },
                         set: { newEnd in
-                            selectedDateRange = DateInterval(start: selectedDateRange.start, end: newEnd)
+                            // Ensure start <= end to avoid DateInterval crash
+                            let start = min(selectedDateRange.start, newEnd)
+                            let end = max(selectedDateRange.start, newEnd)
+                            selectedDateRange = DateInterval(start: start, end: end)
                         }
                     ),
                     displayedComponents: .date
