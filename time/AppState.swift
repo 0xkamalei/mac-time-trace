@@ -3,6 +3,11 @@ import Observation
 import SwiftData
 import SwiftUI
 
+enum ActivityViewMode {
+    case unified
+    case chronological
+}
+
 @Observable
 class AppState {
     var columnVisibility: NavigationSplitViewVisibility = .all
@@ -21,6 +26,9 @@ class AppState {
     private var timerProject: Project?
     private var timerTitle: String?
     private var timerNotes: String?
+    
+    // Activity View Mode
+    var activityViewMode: ActivityViewMode = .unified
 
     init() {
         // Properties initialized with default values

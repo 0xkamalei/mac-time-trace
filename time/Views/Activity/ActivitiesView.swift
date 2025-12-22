@@ -6,16 +6,12 @@ struct ActivitiesView: View {
     let activities: [Activity]
 
     @State private var hierarchyGroups: [ActivityHierarchyGroup] = []
-    @State private var totalDuration: TimeInterval = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if activities.isEmpty {
                 emptyState
             } else {
-                // Header with total duration
-                headerView
-
                 // Hierarchical list
                 List {
                     ForEach(hierarchyGroups, id: \.id) { group in
@@ -57,34 +53,8 @@ struct ActivitiesView: View {
         .background(Color(.controlBackgroundColor))
     }
 
-    private var headerView: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Activities by App")
-                    .font(.headline)
-
-                Text("Total: \(ActivityDataProcessor.formatDuration(totalDuration))")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-
-            Text("\(hierarchyGroups.count) apps")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color(.controlBackgroundColor))
-        .overlay(Divider(), alignment: .bottom)
-    }
-
-    // MARK: - Methods
-
     private func buildHierarchy() {
         hierarchyGroups = ActivityDataProcessor.buildAppHierarchy(activities: activities)
-        totalDuration = ActivityDataProcessor.calculateTotalDuration(for: activities)
     }
 }
 

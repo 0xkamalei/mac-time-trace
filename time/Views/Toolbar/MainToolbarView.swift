@@ -5,7 +5,7 @@ import SwiftUI
 struct MainToolbarView: ToolbarContent {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
-    @Binding var isAddingProject: Bool
+
     @Binding var isStartingTimer: Bool
     @Binding var isAddingTimeEntry: Bool
     @Binding var selectedDateRange: AppDateRange
@@ -13,7 +13,6 @@ struct MainToolbarView: ToolbarContent {
     @Binding var searchText: String
 
     init(
-        isAddingProject: Binding<Bool>,
         isStartingTimer: Binding<Bool>,
         isAddingTimeEntry: Binding<Bool>,
         selectedDateRange: Binding<AppDateRange>,
@@ -21,7 +20,6 @@ struct MainToolbarView: ToolbarContent {
         searchText: Binding<String>,
         modelContext: ModelContext
     ) {
-        _isAddingProject = isAddingProject
         _isStartingTimer = isStartingTimer
         _isAddingTimeEntry = isAddingTimeEntry
         _selectedDateRange = selectedDateRange
@@ -30,17 +28,6 @@ struct MainToolbarView: ToolbarContent {
     }
 
     var body: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            Button(action: {
-                isAddingProject = true
-            }) {
-                HStack {
-                    Image(systemName: "plus.rectangle")
-                    Text("New Project")
-                }
-            }
-            .accessibilityIdentifier("toolbar.newProjectButton")
-        }
 
         if appState.selectedSidebar == "Time Entries" {
             ToolbarItem(placement: .navigation) {

@@ -1,0 +1,225 @@
+import SwiftData
+import SwiftUI
+
+/// Chronological view displaying activities in a flat, time-ordered list
+struct ChronologicalActivitiesView: View {
+    let activities: [Activity]
+    
+    @State private var sortedActivities: [Activity] = []
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if activities.isEmpty {
+                emptyState
+            } else {
+                // Chronological list
+                List {
+                    ForEach(sortedActivities, id: \.id) { activity in
+                        ChronologicalActivityRow(activity: activity)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+                }
+                .listStyle(.plain)
+            }
+        }
+        .onAppear {
+            updateSortedActivities()
+        }
+        .onChange(of: activities) {
+            updateSortedActivities()
+        }
+    }
+    
+    // MARK: - Views
+    
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "clock.badge.questionmark")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            
+            Text("No activities recorded")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            
+            Text("Activities will appear here in chronological order")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.controlBackgroundColor))
+    }
+    
+    // MARK: - Methods
+    
+    private func updateSortedActivities() {
+        // Sort activities by start time in descending order (newest first)
+        sortedActivities = activities.sorted { $0.startTime > $1.startTime }
+    }
+}
+
+/// Individual row for chronological activity display
+struct ChronologicalActivityRow: View {
+    let activity: Activity
+    
+    private var timeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter
+    }
+    
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd"
+        return formatter
+    }
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Duration column (like "2m")
+            Text(formatShortDuration())
+                .font(.system(.caption, design: .monospaced))
+                .foregroundColor(.secondary)
+                .frame(width: 30, alignment: .leading)
+            
+            // Date and time range column
+            VStack(alignment: .leading, spacing: 1) {
+                Text(dateFormatter.string(from: activity.startTime))
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(.secondary)
+                
+                Text(formatTimeRange())
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+            .frame(width: 80, alignment: .leading)
+            
+            // Percentage column
+            Text(formatPercentage())
+                .font(.system(.caption, design: .monospaced))
+                .foregroundColor(.secondary)
+                .frame(width: 40, alignment: .leading)
+            
+            // App info with colored indicator
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(appColor)
+                    .frame(width: 8, height: 8)
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(activity.appName)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    
+                    if let title = activity.appTitle, !title.isEmpty {
+                        Text(title)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            // Additional details or status
+            if activity.isActive {
+                Text("Active")
+                    .font(.caption2)
+                    .foregroundColor(.green)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.green.opacity(0.1))
+                    .cornerRadius(4)
+            }
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 12)
+        .background(rowBackground)
+        .cornerRadius(4)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.secondary.opacity(0.1), lineWidth: 0.5)
+        )
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func formatTimeRange() -> String {
+        let startStr = timeFormatter.string(from: activity.startTime)
+        
+        if let endTime = activity.endTime {
+            let endStr = timeFormatter.string(from: endTime)
+            return "\(startStr)-\(endStr)"
+        } else {
+            return "\(startStr)-now"
+        }
+    }
+    
+    private func formatShortDuration() -> String {
+        let duration = activity.calculatedDuration
+        let totalMinutes = Int(duration / 60)
+        
+        if totalMinutes < 1 {
+            return "<1m"
+        } else if totalMinutes < 60 {
+            return "\(totalMinutes)m"
+        } else {
+            let hours = totalMinutes / 60
+            let minutes = totalMinutes % 60
+            return "\(hours)h\(minutes)m"
+        }
+    }
+    
+    private func formatPercentage() -> String {
+        // This would need to be calculated based on total duration
+        // For now, return a placeholder based on duration
+        let minutes = Int(activity.calculatedDuration / 60)
+        return "\(max(1, minutes))%"
+    }
+    
+    private var appColor: Color {
+        // Generate a consistent color based on app bundle ID
+        let hash = activity.appBundleId.hashValue
+        let colors: [Color] = [.blue, .green, .orange, .purple, .red, .pink, .yellow, .cyan]
+        return colors[abs(hash) % colors.count]
+    }
+    
+    private var rowBackground: Color {
+        return Color(.controlBackgroundColor).opacity(0.5)
+    }
+}
+
+#Preview {
+    let mockActivities = [
+        Activity(
+            appName: "Finder",
+            appBundleId: "com.apple.finder",
+            appTitle: "7% Code, 6% LDX",
+            duration: 3600,
+            startTime: Date().addingTimeInterval(-7200),
+            endTime: Date().addingTimeInterval(-3600)
+        ),
+        Activity(
+            appName: "LDX",
+            appBundleId: "com.ldx.app",
+            duration: 1800,
+            startTime: Date().addingTimeInterval(-3600),
+            endTime: Date().addingTimeInterval(-1800)
+        ),
+        Activity(
+            appName: "Code",
+            appBundleId: "com.microsoft.vscode",
+            duration: 900,
+            startTime: Date().addingTimeInterval(-1800),
+            endTime: Date().addingTimeInterval(-900)
+        )
+    ]
+    
+    ChronologicalActivitiesView(activities: mockActivities)
+        .frame(width: 800, height: 600)
+}

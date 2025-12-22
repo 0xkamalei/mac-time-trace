@@ -6,70 +6,78 @@ struct DateNavigatorView: View {
     @Binding var selectedPreset: AppDateRangePreset?
     @State private var isDatePickerExpanded: Bool = false
 
+    /// 获取显示文本
+    /// - 有预设名称时显示预设名称
+    /// - Day level显示日期格式
+    /// - 其他显示日期范围
     private var dateRangeText: String {
-        let formatter = DateFormatter()
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let selectedStart = calendar.startOfDay(for: selectedDateRange.startDate)
-
+        
+        // 如果有预设，显示预设名称
         if let preset = selectedPreset {
             return preset.rawValue
         }
-
-        if calendar.isDate(selectedStart, inSameDayAs: today) && calendar.isDate(selectedDateRange.endDate, inSameDayAs: Date()) {
-            return "Today"
+        
+        // 检查是否是单日范围（Day level）
+        let startOfSelectedDay = calendar.startOfDay(for: selectedDateRange.startDate)
+        let endOfSelectedDay = calendar.date(byAdding: .day, value: 1, to: startOfSelectedDay)!
+        
+        // 如果结束日期等于开始日期的下一天00:00（即单日查询），显示日期
+        if calendar.isDate(selectedDateRange.endDate, equalTo: endOfSelectedDay, toGranularity: .minute) ||
+           calendar.isDate(selectedDateRange.startDate, inSameDayAs: selectedDateRange.endDate) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "M月d日"
+            return formatter.string(from: selectedDateRange.startDate)
         }
-
-        if let yesterday = calendar.date(byAdding: .day, value: -1, to: today), calendar.isDate(selectedStart, inSameDayAs: yesterday) {
-            return "Yesterday"
-        }
-
-        formatter.dateStyle = .short
+        
+        // 显示日期范围
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
         let startString = formatter.string(from: selectedDateRange.startDate)
         let endString = formatter.string(from: selectedDateRange.endDate)
-
-        if calendar.isDate(selectedDateRange.startDate, inSameDayAs: selectedDateRange.endDate) {
-            return startString
-        } else {
-            return "\(startString) - \(endString)"
-        }
+        return "\(startString) - \(endString)"
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 0) {
+            // 左箭头按钮
             Button(action: {
                 adjustDateRange(by: -1)
             }) {
                 Image(systemName: "chevron.left")
-                    .padding(4)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(4)
+                    .font(.system(size: 14, weight: .medium))
             }
-            .buttonStyle(.plain)
-
+            .buttonStyle(.borderless)
+            
+            Divider()
+                .frame(height: 16)
+                .padding(.horizontal, 2)
+            
+            // 日期显示按钮
             Button(action: {
                 isDatePickerExpanded.toggle()
             }) {
                 Text(dateRangeText)
-                    .frame(minWidth: 120)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .cornerRadius(4)
+                    .font(.system(size: 12))
+                    .frame(minWidth: 70)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderless)
             .popover(isPresented: $isDatePickerExpanded, arrowEdge: .bottom) {
                 TimePickerView(isPresented: $isDatePickerExpanded, selectedDateRange: $selectedDateRange, selectedPreset: $selectedPreset)
             }
-
+            
+            Divider()
+                .frame(height: 16)
+                .padding(.horizontal, 2)
+            
+            // 右箭头按钮
             Button(action: {
                 adjustDateRange(by: 1)
             }) {
                 Image(systemName: "chevron.right")
-                    .padding(4)
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(4)
+                    .font(.system(size: 14, weight: .medium))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderless)
         }
     }
 
@@ -99,9 +107,18 @@ struct DateNavigatorView: View {
                 amount *= (dayCount + 1)
             }
         } else {
-            let dayDifference = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate).day ?? 0
-            component = .day
-            amount *= (dayDifference + 1)
+            // 检查是否是单日查询（Day level）
+            let startOfDay = calendar.startOfDay(for: selectedDateRange.startDate)
+            let endOfDayRange = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+            
+            if calendar.isDate(selectedDateRange.endDate, equalTo: endOfDayRange, toGranularity: .minute) {
+                // 单日查询，按天调整
+                component = .day
+            } else {
+                let dayDifference = calendar.dateComponents([.day], from: selectedDateRange.startDate, to: selectedDateRange.endDate).day ?? 0
+                component = .day
+                amount *= (dayDifference + 1)
+            }
         }
 
         if let newStartDate = calendar.date(byAdding: component, value: amount, to: referenceDate) {

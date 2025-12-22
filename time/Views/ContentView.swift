@@ -19,9 +19,12 @@ struct ContentView: View {
     @State private var selectedDateRange = AppDateRangePreset.today.dateRange
     @State private var selectedPreset: AppDateRangePreset? = .today
 
-    @State private var isAddingProject: Bool = false
     @State private var isStartingTimer: Bool = false
     @State private var isAddingTimeEntry: Bool = false
+
+    private var activitiesView: some View {
+        ActivityViewContainer(activities: activityQueryManager.activities)
+    }
 
     private var detailView: some View {
         Group {
@@ -31,17 +34,11 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     TimelineView()
                     Divider()
-                    ActivitiesView(activities: activityQueryManager.activities)
+                    activitiesView
                 }
             }
         }
         .frame(minWidth: 600, minHeight: 400)
-        .sheet(isPresented: $isAddingProject) {
-            EditProjectView(
-                mode: .create,
-                isPresented: $isAddingProject
-            )
-        }
         .sheet(isPresented: $isAddingTimeEntry) {
             NewTimeEntryView(isPresented: $isAddingTimeEntry)
         }
@@ -66,7 +63,6 @@ struct ContentView: View {
         .environmentObject(timeEntryManager)
         .toolbar {
             MainToolbarView(
-                isAddingProject: $isAddingProject,
                 isStartingTimer: $isStartingTimer,
                 isAddingTimeEntry: $isAddingTimeEntry,
                 selectedDateRange: $selectedDateRange,
@@ -81,7 +77,9 @@ struct ContentView: View {
             activityQueryManager.setModelContext(modelContext)
             
             // Sync initial date range
-            let initialInterval = DateInterval(start: selectedDateRange.startDate, end: selectedDateRange.endDate)
+            let start = min(selectedDateRange.startDate, selectedDateRange.endDate)
+            let end = max(selectedDateRange.startDate, selectedDateRange.endDate)
+            let initialInterval = DateInterval(start: start, end: end)
             activityQueryManager.setDateRange(initialInterval)
             
             timeEntryManager.setModelContext(modelContext)
@@ -106,9 +104,12 @@ struct ContentView: View {
             Logger.ui.info("Sidebar selection changed to: \(newSidebar ?? "None", privacy: .public)")
         }
         .onChange(of: selectedDateRange) { _, newDateRange in
-            let dateInterval = DateInterval(start: newDateRange.startDate, end: newDateRange.endDate)
+            // Ensure start date is before or equal to end date to avoid DateInterval crash
+            let start = min(newDateRange.startDate, newDateRange.endDate)
+            let end = max(newDateRange.startDate, newDateRange.endDate)
+            let dateInterval = DateInterval(start: start, end: end)
             activityQueryManager.setDateRange(dateInterval)
-            Logger.ui.debug("Date range changed: \(newDateRange.startDate, privacy: .public) - \(newDateRange.endDate, privacy: .public)")
+            Logger.ui.debug("Date range changed: \(start, privacy: .public) - \(end, privacy: .public)")
         }
         .onChange(of: searchText) { _, newSearchText in
             activityQueryManager.setSearchText(newSearchText)
