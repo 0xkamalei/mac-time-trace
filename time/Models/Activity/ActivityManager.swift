@@ -88,7 +88,11 @@ class ActivityManager: ObservableObject {
         if let app = NSWorkspace.shared.frontmostApplication,
            let bundleId = app.bundleIdentifier {
             let context = WindowMonitor.shared.getContext(for: app.processIdentifier)
-            trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
+            // Initialize AutoAssignmentManager rules
+            Task { @MainActor in
+                AutoAssignmentManager.shared.reloadRules(modelContext: modelContext)
+                trackAppSwitch(newApp: bundleId, context: context, modelContext: modelContext)
+            }
         }
     }
     
@@ -172,6 +176,12 @@ class ActivityManager: ObservableObject {
             startTime: startTime,
             endTime: nil
         )
+
+        // Auto assign project
+        if let projectId = AutoAssignmentManager.shared.evaluate(activity: newActivity) {
+            newActivity.projectId = projectId
+            logger.debug("Auto-assigned activity '\(appName)' to project \(projectId)")
+        }
 
         self.currentActivity = newActivity
         if let title = context.title {

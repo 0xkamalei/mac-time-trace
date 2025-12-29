@@ -10,6 +10,8 @@ final class Project: Equatable, Codable {
     var sortOrder: Int
     var productivityRating: Double = 0.5
     var isArchived: Bool = false
+    
+ 
 
     var color: Color {
         get {

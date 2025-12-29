@@ -24,12 +24,6 @@ struct SettingsView: View {
                 }
                 .tag(Tab.tracking)
             
-            PlaceholderSettingsView(title: "Rules", icon: "list.bullet.rectangle")
-                .tabItem {
-                    Label("Rules", systemImage: "list.bullet.rectangle")
-                }
-                .tag(Tab.rules)
-            
             PlaceholderSettingsView(title: "Appearance", icon: "paintbrush")
                 .tabItem {
                     Label("Appearance", systemImage: "paintbrush")

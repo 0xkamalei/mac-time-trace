@@ -39,6 +39,7 @@ struct EditProjectView: View {
         var color: Color = .blue
         var productivityRating: Double = 0.5
         var archived: Bool = false
+        var rules: [AutoAssignRule] = []
 
         var nameError: String? = nil
         var hasErrors: Bool {
@@ -53,6 +54,7 @@ struct EditProjectView: View {
     @Binding var isPresented: Bool
     @Environment(AppState.self) private var appState
     @EnvironmentObject private var projectManager: ProjectManager
+    @Environment(\.modelContext) private var modelContext
 
     @Query(sort: \Project.sortOrder) private var allProjects: [Project]
 
@@ -64,6 +66,7 @@ struct EditProjectView: View {
     @State private var formData = ProjectFormData()
 
     @State private var showingDeleteConfirmation = false
+    @State private var showingAddRuleSheet = false
     
     @State private var isSubmitting = false
     @State private var isDeleting = false
@@ -93,77 +96,94 @@ struct EditProjectView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Header Section
-                    VStack(spacing: 8) {
-                        Text(navigationTitle)
-                            .font(.system(size: 24, weight: .bold))
-                        
-                        Text("Projects let you organize your time by what you worked on.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+            Form {
+                Section {
+                    TextField("Project Name", text: $formData.name)
+                        .textFieldStyle(.roundedBorder)
+                    
+                    if let nameError = formData.nameError {
+                        Text(nameError)
+                            .font(.caption)
+                            .foregroundColor(.red)
                     }
-                    .padding(.bottom, 8)
-
-                    // Form Content
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Basic Info Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Basic Information")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                            
-                            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
-                                GridRow {
-                                    Text("Project Name")
-                                        .gridColumnAlignment(.trailing)
-                                        .foregroundColor(.secondary)
-                                    
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        TextField("Enter project name", text: $formData.name)
-                                            .textFieldStyle(.roundedBorder)
-                                            .frame(maxWidth: .infinity)
-                                        
-                                        if let nameError = formData.nameError {
-                                            Text(nameError)
-                                                .font(.caption)
-                                                .foregroundColor(.red)
-                                        }
-                                    }
+                    
+                    ColorPicker("Project Color", selection: $formData.color)
+                } header: {
+                    Text("Basic Information")
+                }
+                
+                Section {
+                    if formData.rules.isEmpty {
+                        Text("No rules defined")
+                            .foregroundStyle(.secondary)
+                            .italic()
+                    } else {
+                        ForEach(formData.rules) { rule in
+                            HStack {
+                                if rule.ruleType == .appBundleId {
+                                    AppIconView(bundleId: rule.value, size: 20)
+                                } else {
+                                    Image(systemName: "text.magnifyingglass")
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 20, height: 20)
                                 }
                                 
-                                GridRow {
-                                    Text("Project Color")
-                                        .gridColumnAlignment(.trailing)
-                                        .foregroundColor(.secondary)
-                                    
-                                    HStack {
-                                        ColorPicker("", selection: $formData.color)
-                                            .labelsHidden()
-                                        Spacer()
-                                    }
+                                VStack(alignment: .leading) {
+                                    Text(rule.ruleType.displayName)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(rule.value)
+                                        .font(.body)
+                                        .foregroundStyle(.secondary) // Make text color subtle as requested
                                 }
+                                
+                                Spacer()
+                                
+                                Button(role: .destructive) {
+                                    if let index = formData.rules.firstIndex(where: { $0.id == rule.id }) {
+                                        formData.rules.remove(at: index)
+                                    }
+                                } label: {
+                                    Image(systemName: "trash")
+                                }
+                                .buttonStyle(.borderless)
                             }
+                            .padding(.vertical, 4)
                         }
-                        .padding()
-                        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-                        .cornerRadius(12)
                     }
-
-                    if case let .edit(project) = mode {
-                        ProjectDangerZoneSection(project: project, onDelete: {
+                    
+                    Button {
+                        showingAddRuleSheet = true
+                    } label: {
+                        Label("Add Rule", systemImage: "plus")
+                    }
+                } header: {
+                    Text("Auto Assignment Rules")
+                } footer: {
+                    Text("Activities matching these rules will be automatically assigned to this project.")
+                }
+                
+                if case let .edit(project) = mode {
+                    Section {
+                        Button(role: .destructive) {
                             showingDeleteConfirmation = true
-                        })
-                        .disabled(isSubmitting || isDeleting)
+                        } label: {
+                            Label("Delete Project", systemImage: "trash")
+                                .foregroundStyle(.red)
+                        }
+                    } header: {
+                        Text("Danger Zone")
+                    } footer: {
+                        Text("Once you delete a project, there is no going back.")
                     }
                 }
-                .padding(.horizontal, 40)
-                .padding(.vertical, 20)
             }
-
-            // Messages & Footer
-            VStack(spacing: 12) {
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .background(Color(NSColor.windowBackgroundColor))
+            
+            // Footer
+            VStack(spacing: 16) {
                 if let submitError = submitError {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -173,103 +193,58 @@ struct EditProjectView: View {
                             .font(.caption)
                             .fontWeight(.medium)
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(Color.red.opacity(0.1))
                     .cornerRadius(8)
                     .offset(x: errorShakeOffset)
                 }
-
-                if showingSuccessMessage {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                        Text(mode.isEditing ? "Project updated successfully" : "Project created successfully")
-                            .foregroundColor(.green)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(8)
-                }
-
+                
                 HStack {
                     Button("Cancel") {
                         isPresented = false
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-                    .disabled(isSubmitting || isDeleting)
-
+                    .keyboardShortcut(.cancelAction)
+                    
                     Spacer()
-
-                    Button(action: {
+                    
+                    Button(mode.isEditing ? "Save Changes" : "Create Project") {
                         Task { await saveProjectAsync() }
-                    }) {
-                        if isSubmitting {
-                            ProgressView()
-                                .controlSize(.small)
-                                .padding(.horizontal, 10)
-                        } else {
-                            Text(mode.isEditing ? "Save Changes" : "Create Project")
-                                .fontWeight(.semibold)
-                        }
                     }
                     .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
                     .keyboardShortcut(.defaultAction)
                     .disabled(!isFormValid)
                 }
-                .padding(.horizontal, 40)
-                .padding(.vertical, 20)
-                .background(Color(NSColor.windowBackgroundColor))
             }
+            .padding()
+            .background(.bar)
         }
-        .frame(minWidth: 550, maxWidth: 650, minHeight: 500, maxHeight: 800)
+        .frame(width: 500, height: 600)
         .navigationTitle(navigationTitle)
-        .scaleEffect(formScale)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: formScale)
         .overlay {
             if showingLoadingOverlay {
                 ZStack {
-                    Color.black.opacity(0.3)
+                    Color.black.opacity(0.2)
                         .ignoresSafeArea()
-
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                        
-                        Text(isSubmitting ? "Saving project..." : "Deleting project...")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-
-                        if operationProgress > 0 {
-                            ProgressView(value: operationProgress, total: 1.0)
-                                .frame(width: 200)
-                        }
-                    }
-                    .padding(24)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(.regularMaterial))
+                    ProgressView()
+                        .controlSize(.large)
                 }
             }
         }
         .onAppear {
             initializeFormData()
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                formScale = 1.0
+        }
+        .sheet(isPresented: $showingAddRuleSheet) {
+            AddAutoAssignRuleView { newRule in
+                formData.rules.append(newRule)
+                showingAddRuleSheet = false
             }
         }
         .confirmationDialog("Delete Project", isPresented: $showingDeleteConfirmation) {
-            if case let .edit(project) = mode {
-                ProjectDeleteConfirmationDialog(
-                    project: project,
-                    onConfirm: {
-                        deleteProject()
-                    }
-                )
+            Button("Delete", role: .destructive) {
+                deleteProject()
             }
+            Button("Cancel", role: .cancel) {}
         } message: {
             if case let .edit(project) = mode {
                 Text("Are you sure you want to delete \"\(project.name)\"? This action cannot be undone.")
@@ -288,12 +263,25 @@ struct EditProjectView: View {
             formData = ProjectFormData()
             formData.name = ""
             formData.color = .blue
+            formData.rules = []
 
         case let .edit(project):
             formData.name = project.name
             formData.color = project.color
             formData.productivityRating = project.productivityRating
             formData.archived = project.isArchived
+            
+            // Fetch rules manually
+            let projectId = project.id
+            let descriptor = FetchDescriptor<AutoAssignRule>(predicate: #Predicate { $0.projectId == projectId })
+            if let rules = try? modelContext.fetch(descriptor) {
+                // Create copies
+                formData.rules = rules.map { 
+                    AutoAssignRule(projectId: projectId, ruleType: $0.ruleType, value: $0.value) 
+                }
+            } else {
+                formData.rules = []
+            }
         }
     }
 
@@ -433,12 +421,24 @@ struct EditProjectView: View {
 
     private func createNewProjectAsync() async throws {
         let trimmedName = formData.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        _ = try await projectManager.createProject(
+        let project = try await projectManager.createProject(
             name: trimmedName,
             color: formData.color,
             productivityRating: formData.productivityRating,
             isArchived: formData.archived
         )
+        
+        // Add rules
+        if !formData.rules.isEmpty {
+            await MainActor.run {
+                for rule in formData.rules {
+                    rule.projectId = project.id // Set the project ID
+                    modelContext.insert(rule)
+                }
+                try? modelContext.save()
+                AutoAssignmentManager.shared.reloadRules(modelContext: modelContext)
+            }
+        }
     }
 
     /// Updates an existing project asynchronously
@@ -461,6 +461,28 @@ struct EditProjectView: View {
             productivityRating: formData.productivityRating,
             isArchived: formData.archived
         )
+        
+        // Update rules
+        await MainActor.run {
+            let projectId = project.id
+            
+            // Remove old rules
+            let descriptor = FetchDescriptor<AutoAssignRule>(predicate: #Predicate { $0.projectId == projectId })
+            if let existingRules = try? modelContext.fetch(descriptor) {
+                for rule in existingRules {
+                    modelContext.delete(rule)
+                }
+            }
+            
+            // Insert new rules
+            for rule in formData.rules {
+                rule.projectId = projectId
+                modelContext.insert(rule)
+            }
+            
+            try? modelContext.save()
+            AutoAssignmentManager.shared.reloadRules(modelContext: modelContext)
+        }
     }
 
     /// Calculates the next sort order
@@ -495,6 +517,17 @@ struct EditProjectView: View {
             if appState.selectedProject?.id == project.id {
                 await MainActor.run { appState.clearSelection() }
             }
+            
+            // Delete associated rules manually (since cascade is gone)
+            await MainActor.run {
+                let projectId = project.id
+                let descriptor = FetchDescriptor<AutoAssignRule>(predicate: #Predicate { $0.projectId == projectId })
+                if let rules = try? modelContext.fetch(descriptor) {
+                    for rule in rules {
+                        modelContext.delete(rule)
+                    }
+                }
+            }
 
             try await projectManager.deleteProject(project)
 
@@ -514,6 +547,7 @@ struct EditProjectView: View {
 
 // MARK: - Rule Types and Components
 
+// AddAutoAssignRuleView has been moved to its own file: AddAutoAssignRuleView.swift
 
 
 // MARK: - Supporting Components
