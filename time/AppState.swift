@@ -61,47 +61,6 @@ class AppState {
         return selectedSidebar == item && selectedProject == nil
     }
 
-    // MARK: - Timer Logic
 
-    @MainActor
-    func startTimer(project: Project? = nil, title: String? = nil, notes: String? = nil) {
-        isTimerActive = true
-        timerStartTime = Date()
-        self.timerProject = project
-        self.timerTitle = title
-        self.timerNotes = notes
-        isTimerStarting = false 
-    }
-    
-    @MainActor
-    func stopTimer() async {
-        guard let startTime = timerStartTime else {
-            isTimerActive = false
-            return
-        }
-        
-        let endTime = Date()
-        isTimerActive = false
-        timerStartTime = nil
-        
-        // TODO: Re-implement TimeEntry creation when the feature is ready
-        /*
-        do {
-            _ = try await TimeEntryManager.shared.createFromTimer(
-                project: timerProject ?? selectedProject,
-                startTime: startTime,
-                endTime: endTime,
-                title: timerTitle,
-                notes: timerNotes
-            )
-        } catch {
-             print("Failed to stop timer and create entry: \(error)")
-        }
-        */
-        
-        // Reset metadata
-        timerProject = nil
-        timerTitle = nil
-        timerNotes = nil
-    }
+
 }

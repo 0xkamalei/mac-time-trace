@@ -115,6 +115,11 @@ struct ChronologicalActivityRow: View {
                     }
                 }
                 
+                Text(activity.appBundleId)
+                    .font(.caption2)
+                    .foregroundColor(isSelected ? .white.opacity(0.6) : .secondary.opacity(0.8))
+                    .lineLimit(1)
+                
                 if let title = activity.appTitle {
                     Text(title)
                         .font(.caption2)

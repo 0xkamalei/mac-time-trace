@@ -32,4 +32,7 @@ struct TimelineRenderBlock: Identifiable {
     /// Time range for display
     let startTime: Date
     let endTime: Date
+    
+    /// Optional Event ID for manual events
+    var eventId: UUID? = nil
 }

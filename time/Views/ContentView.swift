@@ -18,16 +18,30 @@ struct ContentView: View {
     @State private var selectedDateRange = AppDateRangePreset.today.dateRange
     @State private var selectedPreset: AppDateRangePreset? = .today
     
+    @Query(sort: \Event.startTime) private var allEvents: [Event]
+    
     // Timeline viewport state (defaults to selectedDateRange, but can be zoomed)
     @State private var timelineVisibleRange: ClosedRange<Date> = Date()...Date()
+
+    // Filter Range State (separate from visual zoom)
+    @State private var filterDateRange: ClosedRange<Date> = Date()...Date()
 
     // Debounced Viewport State
     @State private var debouncedVisibleRange: ClosedRange<Date> = Date()...Date()
     
     // Filtered activities based on debounced viewport
+    private var viewportEvents: [Event] {
+        let start = filterDateRange.lowerBound
+        let end = filterDateRange.upperBound
+        return allEvents.filter { event in
+            let eventEnd = event.endTime ?? Date()
+            return event.startTime < end && eventEnd > start
+        }
+    }
+
     private var viewportActivities: [Activity] {
-        let start = debouncedVisibleRange.lowerBound
-        let end = debouncedVisibleRange.upperBound
+        let start = filterDateRange.lowerBound
+        let end = filterDateRange.upperBound
         return activityQueryManager.activities.filter { activity in
             // Keep activity if it overlaps with visible range
             // Overlap logic: (ActStart < ViewEnd) AND (ActEnd > ViewStart)
@@ -49,10 +63,14 @@ struct ContentView: View {
                 
                 TimelineView(
                     activities: activityQueryManager.activities,
+                    events: viewportEvents,
                     visibleTimeRange: $timelineVisibleRange,
-                    totalTimeRange: start...end
+                    totalTimeRange: start...end,
+                    onRangeSelected: { newRange in
+                        filterDateRange = newRange
+                    }
                 )
-                .frame(height: 100) // Adjusted container height
+                .frame(height: 140) // Adjusted container height
                 .padding(8) // Outer padding
                 .zIndex(1) // Ensure Tooltip floats above the list below
                 
@@ -101,6 +119,7 @@ struct ContentView: View {
             let initialInterval = DateInterval(start: start, end: end)
             activityQueryManager.setDateRange(initialInterval)
             timelineVisibleRange = start...end
+            filterDateRange = start...end
             debouncedVisibleRange = start...end
             
             // Sync initial sidebar filter
@@ -131,6 +150,7 @@ struct ContentView: View {
             activityQueryManager.setDateRange(dateInterval)
             // Reset timeline zoom when global range changes
             timelineVisibleRange = start...end
+            filterDateRange = start...end
             debouncedVisibleRange = start...end
             Logger.ui.debug("Date range changed: \(start, privacy: .public) - \(end, privacy: .public)")
         }

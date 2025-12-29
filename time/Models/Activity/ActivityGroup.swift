@@ -4,6 +4,7 @@ import Foundation
 enum ActivityGroupLevel {
     case project
     case appName
+    case domain
     case appContext
     case detail
 }
@@ -52,6 +53,8 @@ struct ActivityGroup: Identifiable {
             return "folder"
         case .appName:
             return "app"
+        case .domain:
+            return "globe"
         case .appContext:
             return "document"
         case .detail:

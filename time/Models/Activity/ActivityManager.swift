@@ -171,7 +171,7 @@ class ActivityManager: ObservableObject {
             appTitle: context.title,
             filePath: context.filePath,
             webUrl: context.webUrl,
-            domain: nil, // TODO: Extract domain from webUrl
+            domain: extractDomain(from: context.webUrl),
             duration: 0,
             startTime: startTime,
             endTime: nil
@@ -192,6 +192,11 @@ class ActivityManager: ObservableObject {
     }
 
     // MARK: - Private Methods
+
+    private func extractDomain(from urlString: String?) -> String? {
+        guard let urlString = urlString, let url = URL(string: urlString) else { return nil }
+        return url.host
+    }
 
     private func handleAppActivation(_ notification: Notification) {
         guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,

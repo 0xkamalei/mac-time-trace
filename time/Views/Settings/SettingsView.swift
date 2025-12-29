@@ -30,6 +30,9 @@ struct SettingsView: View {
 
 struct GeneralSettingsView: View {
     @AppStorage("appTheme") private var appTheme: AppTheme = .system
+    @AppStorage("timelineMergeStatisticsEnabled") private var mergeEnabled = false
+    @AppStorage("timelineMergeIntervalMinutes") private var mergeIntervalMinutes = 30
+    
     @State private var launchManager = LaunchAtLoginManager.shared
     
     var body: some View {
@@ -53,6 +56,30 @@ struct GeneralSettingsView: View {
             }
             
             Section {
+                Toggle(isOn: $mergeEnabled) {
+                    VStack(alignment: .leading) {
+                        Text("Merge Fragmented Activities")
+                        Text("Combine short activities within a time range into a continuous block.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                if mergeEnabled {
+                    Stepper(value: $mergeIntervalMinutes, in: 10...1440, step: 10) {
+                        HStack {
+                            Text("Merge Interval")
+                            Spacer()
+                            Text(formatInterval(mergeIntervalMinutes))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                Text("Timeline")
+            }
+            
+            Section {
                 Toggle(isOn: Bindable(launchManager).isEnabled) {
                     VStack(alignment: .leading) {
                         Text("Launch at login")
@@ -67,6 +94,15 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .scrollDisabled(true)
+    }
+    
+    private func formatInterval(_ minutes: Int) -> String {
+        if minutes < 60 {
+            return "\(minutes) min"
+        } else {
+            let hours = Double(minutes) / 60.0
+            return String(format: "%.1f hours", hours)
+        }
     }
 }
 

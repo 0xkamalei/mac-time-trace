@@ -7,8 +7,13 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
     var totalWidth: CGFloat
     
     // Hit-Testing Callback
-    var onHover: ((CGFloat) -> Void)?
+    var onHover: ((CGPoint) -> Void)?
     var onHoverEnd: (() -> Void)?
+    var onClick: ((CGPoint) -> Void)?
+    var onDoubleClick: ((CGPoint) -> Void)?
+    
+    // Drag Selection Callback (start, end, y)
+    var onDragEnd: ((CGFloat, CGFloat, CGFloat) -> Void)?
     
     func makeNSView(context: Context) -> NSView {
         let view = InteractionView()
@@ -20,16 +25,24 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
         }
         
         // Pass Zoom-to-Range event back to Coordinator
-        view.onZoomToRange = { x1, x2 in
-            context.coordinator.handleZoomToRange(x1: x1, x2: x2)
+        view.onZoomToRange = { x1, x2, y in
+            context.coordinator.handleZoomOrDrag(x1: x1, x2: x2, y: y)
         }
         
         // Pass Hover event
         view.onHover = { point in
-            onHover?(point.x)
+            onHover?(point)
         }
         view.onHoverEnd = {
             onHoverEnd?()
+        }
+        
+        view.onClick = { point in
+            onClick?(point)
+        }
+        
+        view.onDoubleClick = { point in
+            onDoubleClick?(point)
         }
         
         return view
@@ -55,6 +68,19 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
         }
         
         // MARK: - Gestures
+        
+        func handleZoomOrDrag(x1: CGFloat, x2: CGFloat, y: CGFloat) {
+            // Check if bottom track (Events)
+            // Activity track height is ~48
+            if y > 48 {
+                // Pass drag event up for Event Creation
+                parent.onDragEnd?(x1, x2, y)
+                return
+            }
+            
+            // Otherwise Zoom
+            handleZoomToRange(x1: x1, x2: x2)
+        }
         
         func handleZoomToRange(x1: CGFloat, x2: CGFloat) {
             let currentRange = parent.visibleTimeRange
@@ -165,12 +191,15 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
         // Hover
         var onHover: ((CGPoint) -> Void)?
         var onHoverEnd: (() -> Void)?
+        var onClick: ((CGPoint) -> Void)?
+        var onDoubleClick: ((CGPoint) -> Void)?
         
         // Drag Selection UI
         private var dragStartPoint: CGPoint?
         private var selectionLayer: CALayer?
         
         override var acceptsFirstResponder: Bool { true }
+        override var isFlipped: Bool { true }
         
         // Enable Mouse Tracking
         override func updateTrackingAreas() {
@@ -200,6 +229,37 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
         }
         
         override func mouseDown(with event: NSEvent) {
+            if event.clickCount == 2 {
+                let point = convert(event.locationInWindow, from: nil)
+                onDoubleClick?(point)
+                return
+            }
+            handleDragStart(event: event)
+        }
+        
+        override func rightMouseDown(with event: NSEvent) {
+            handleDragStart(event: event)
+        }
+        
+        override func mouseDragged(with event: NSEvent) {
+            handleDragUpdate(event: event)
+        }
+        
+        override func rightMouseDragged(with event: NSEvent) {
+            handleDragUpdate(event: event)
+        }
+        
+        override func mouseUp(with event: NSEvent) {
+            handleDragEnd(event: event)
+        }
+        
+        override func rightMouseUp(with event: NSEvent) {
+            handleDragEnd(event: event)
+        }
+        
+        // MARK: - Unified Drag Handling
+        
+        private func handleDragStart(event: NSEvent) {
             dragStartPoint = convert(event.locationInWindow, from: nil)
             
             // Init selection layer
@@ -215,7 +275,7 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
             selectionLayer?.isHidden = false
         }
         
-        override func mouseDragged(with event: NSEvent) {
+        private func handleDragUpdate(event: NSEvent) {
             guard let start = dragStartPoint else { return }
             let current = convert(event.locationInWindow, from: nil)
             
@@ -230,7 +290,7 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
             CATransaction.commit()
         }
         
-        override func mouseUp(with event: NSEvent) {
+        private func handleDragEnd(event: NSEvent) {
             guard let start = dragStartPoint else { return }
             let end = convert(event.locationInWindow, from: nil)
             
@@ -241,11 +301,21 @@ struct TimelineInteractionOverlay: NSViewRepresentable {
             if distance > 10 {
                 let x1 = min(start.x, end.x)
                 let x2 = max(start.x, end.x)
-                onZoomToRange?(x1, x2)
+                
+                // Check if Right Click (Right Mouse Up or Ctrl+Left Click)
+                let isRightClick = event.type == .rightMouseUp || (event.modifierFlags.contains(.control) && event.type == .leftMouseUp)
+                
+                // If Right Click -> Force Y > 49 to trigger Event Creation
+                // If Left Click -> Force Y = 0 to trigger only Zoom/Filter
+                let effectiveY = isRightClick ? 50.0 : 0.0
+                
+                onZoomToRange?(x1, x2, effectiveY)
+            } else {
+                onClick?(end)
             }
         }
         
         // We need a way to communicate "Zoom to X1...X2" back to SwiftUI.
-        var onZoomToRange: ((CGFloat, CGFloat) -> Void)?
+        var onZoomToRange: ((CGFloat, CGFloat, CGFloat) -> Void)?
     }
 }

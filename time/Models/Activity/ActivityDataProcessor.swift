@@ -85,7 +85,13 @@ class ActivityDataProcessor {
             let groupId = (parentId != nil) ? "\(parentId!):\(bundleId)" : bundleId
             
             // Recursively group children by Context
-            let children = groupByAppContext(activities: appActivities, parentId: groupId)
+            let children: [ActivityGroup]?
+            
+            if isBrowserApp(bundleId) {
+                children = groupByDomain(activities: appActivities, parentId: groupId)
+            } else {
+                children = groupByAppContext(activities: appActivities, parentId: groupId)
+            }
             
             let group = ActivityGroup(
                 id: groupId,
@@ -102,6 +108,47 @@ class ActivityDataProcessor {
         return groups.isEmpty ? nil : groups.sorted { $0.totalDuration > $1.totalDuration }
     }
     
+    /// Groups activities by Domain (for Browser apps)
+    /// - Parameter activities: List of activities to group (assumed to be filtered by app)
+    /// - Returns: Array of ActivityGroup at .domain level
+    static func groupByDomain(activities: [Activity], parentId: String) -> [ActivityGroup]? {
+        var groups: [ActivityGroup] = []
+        var activitiesByDomain: [String: [Activity]] = [:]
+        
+        for activity in activities {
+            var domain = activity.domain
+            
+            // Fallback: Try to extract domain from webUrl if domain is missing
+            if domain == nil, let urlString = activity.webUrl, let url = URL(string: urlString) {
+                domain = url.host
+            }
+            
+            let key = domain ?? "Other"
+            activitiesByDomain[key, default: []].append(activity)
+        }
+        
+        for (domain, domainActivities) in activitiesByDomain {
+            // Use hash of domain to ensure unique ID
+            let domainHash = String(domain.hashValue)
+            let groupId = "\(parentId):\(domainHash)"
+            
+            // Recursively group children by Context (Title)
+            let children = groupByAppContext(activities: domainActivities, parentId: groupId)
+            
+            let group = ActivityGroup(
+                id: groupId,
+                name: domain,
+                level: .domain,
+                children: children,
+                activities: domainActivities,
+                bundleId: domainActivities.first?.appBundleId
+            )
+            groups.append(group)
+        }
+        
+        return groups.isEmpty ? nil : groups.sorted { $0.totalDuration > $1.totalDuration }
+    }
+
     /// Groups activities by context (Title/URL/FilePath)
     /// - Parameter activities: List of activities to group (assumed to be filtered by app)
     /// - Returns: Array of ActivityGroup at .appContext level
@@ -213,6 +260,7 @@ class ActivityDataProcessor {
             "org.mozilla.firefox",
             "com.operasoftware.Opera",
             "com.brave.Browser",
+            "company.thebrowser.Browser",
         ]
         return browsers.contains(bundleId)
     }

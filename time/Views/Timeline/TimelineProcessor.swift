@@ -8,7 +8,7 @@ class TimelineProcessor {
     
     // Constants for Level of Detail (LOD)
     private let MERGE_THRESHOLD_PX: CGFloat = 1.0
-    private let MIN_DRAW_WIDTH_PX: CGFloat = 1.0 // Draw at least 1px line
+    private let MIN_DRAW_WIDTH_PX: CGFloat = 2.0 // Draw at least 2px line
     private let TRACK_HEIGHT: CGFloat = 40.0
     private let BLOCK_PADDING: CGFloat = 4.0
     
@@ -62,8 +62,6 @@ class TimelineProcessor {
             
             let actStartX = getX(activity.startTime)
             let actEndX = getX(activityEnd)
-            // Ensure width is non-negative
-            let actWidth = max(0, actEndX - actStartX)
             
             let actBundleId = activity.appBundleId
             let actName = activity.appName
@@ -117,6 +115,158 @@ class TimelineProcessor {
         return renderBlocks
     }
     
+    /// Converts raw activities into aggregated blocks based on time intervals
+    func processMerged(activities: [Activity], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat, interval: TimeInterval) -> [TimelineRenderBlock] {
+        guard !activities.isEmpty, canvasWidth > 0, interval > 0 else { return [] }
+        
+        let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
+        guard totalSeconds > 0 else { return [] }
+        
+        let pixelsPerSecond = canvasWidth / CGFloat(totalSeconds)
+        let visibleStart = visibleTimeRange.lowerBound
+        
+        func getX(_ date: Date) -> CGFloat {
+            return CGFloat(date.timeIntervalSince(visibleStart)) * pixelsPerSecond
+        }
+        
+        // 1. Align start time to interval
+        let startInterval = floor(visibleStart.timeIntervalSince1970 / interval) * interval
+        let endInterval = ceil(visibleTimeRange.upperBound.timeIntervalSince1970 / interval) * interval
+        
+        var renderBlocks: [TimelineRenderBlock] = []
+        
+        // 2. Iterate buckets
+        var currentBucketStart = startInterval
+        while currentBucketStart < endInterval {
+            let bucketStart = Date(timeIntervalSince1970: currentBucketStart)
+            let bucketEnd = Date(timeIntervalSince1970: currentBucketStart + interval)
+            
+            // 3. Find overlapping activities and sum durations
+            var appDurations: [String: TimeInterval] = [:]
+            var appNames: [String: String] = [:]
+            var appActivityIds: [String: [UUID]] = [:]
+            
+            for activity in activities {
+                let actEnd = activity.endTime ?? Date()
+                if actEnd <= bucketStart || activity.startTime >= bucketEnd {
+                    continue
+                }
+                
+                let overlapStart = max(activity.startTime, bucketStart)
+                let overlapEnd = min(actEnd, bucketEnd)
+                let duration = overlapEnd.timeIntervalSince(overlapStart)
+                
+                if duration > 0 {
+                    let bundleId = activity.appBundleId
+                    appDurations[bundleId, default: 0] += duration
+                    appNames[bundleId] = activity.appName // Keep last name
+                    appActivityIds[bundleId, default: []].append(activity.id)
+                }
+            }
+            
+            // 4. Sort apps by duration
+            let sortedApps = appDurations.keys.sorted {
+                appDurations[$0]! > appDurations[$1]!
+            }
+            
+            // 5. Create Blocks
+            // We stack them starting from bucketStart
+            var currentBlockStartTime = bucketStart
+            
+            for bundleId in sortedApps {
+                let duration = appDurations[bundleId]!
+                let appName = appNames[bundleId] ?? ""
+                let ids = appActivityIds[bundleId] ?? []
+                
+                let blockEndTime = currentBlockStartTime.addingTimeInterval(duration)
+                
+                let startX = getX(currentBlockStartTime)
+                let endX = getX(blockEndTime)
+                let width = max(0, endX - startX)
+                
+                // Only draw if visible (width > 0.5)
+                if width >= 0.5 {
+                    // Rect
+                    let rect = CGRect(
+                        x: startX,
+                        y: 0,
+                        width: width,
+                        height: TRACK_HEIGHT + 8
+                    )
+                    
+                    let color = self.color(for: appName)
+                    let icon = self.icon(for: bundleId)
+                    
+                    renderBlocks.append(TimelineRenderBlock(
+                        rect: rect,
+                        color: color,
+                        appBundleId: bundleId,
+                        appName: appName,
+                        icon: icon,
+                        underlyingActivityIds: ids,
+                        totalDuration: duration,
+                        startTime: currentBlockStartTime, // Visual start
+                        endTime: blockEndTime // Visual end
+                    ))
+                }
+                
+                currentBlockStartTime = blockEndTime
+            }
+            
+            currentBucketStart += interval
+        }
+        
+        return renderBlocks
+    }
+    
+    func processEvents(events: [Event], visibleTimeRange: ClosedRange<Date>, canvasWidth: CGFloat) -> [TimelineRenderBlock] {
+        guard !events.isEmpty, canvasWidth > 0 else { return [] }
+        
+        let totalSeconds = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
+        guard totalSeconds > 0 else { return [] }
+        
+        let pixelsPerSecond = canvasWidth / CGFloat(totalSeconds)
+        let startTime = visibleTimeRange.lowerBound
+        
+        func getX(_ date: Date) -> CGFloat {
+            return CGFloat(date.timeIntervalSince(startTime)) * pixelsPerSecond
+        }
+        
+        var blocks: [TimelineRenderBlock] = []
+        
+        for event in events {
+            let eventEnd = event.endTime ?? Date()
+            
+            // Filter
+            if eventEnd < visibleTimeRange.lowerBound || event.startTime > visibleTimeRange.upperBound {
+                continue
+            }
+            
+            let startX = getX(event.startTime)
+            let endX = getX(eventEnd)
+            let width = max(2.0, endX - startX)
+            
+            // Rect relative to the track height (40)
+            let rect = CGRect(x: startX, y: 4, width: width, height: 32)
+            
+            let color = self.color(for: event.name)
+            
+            blocks.append(TimelineRenderBlock(
+                rect: rect,
+                color: color,
+                appBundleId: "ManualEvent",
+                appName: event.name,
+                icon: nil,
+                underlyingActivityIds: [],
+                totalDuration: event.duration,
+                startTime: event.startTime,
+                endTime: eventEnd,
+                eventId: event.id
+            ))
+        }
+        return blocks
+    }
+    
     private func createBlock(from pending: PendingBlock) -> TimelineRenderBlock? {
         let rawWidth = pending.endX - pending.startX
         
@@ -129,10 +279,11 @@ class TimelineProcessor {
         let visualWidth = max(rawWidth, MIN_DRAW_WIDTH_PX)
         
         // Layout within the track
-        let blockHeight = TRACK_HEIGHT - (BLOCK_PADDING * 2)
+        // Full height for activities
+        let blockHeight = TRACK_HEIGHT + 8 // 48
         let rect = CGRect(
             x: pending.startX,
-            y: BLOCK_PADDING,
+            y: 0,
             width: visualWidth,
             height: blockHeight
         )
@@ -161,9 +312,8 @@ class TimelineProcessor {
     // MARK: - Helpers
     
     private func color(for string: String) -> Color {
-        // Generate a consistent color from string hash
-        // Use a simple algorithm to spread colors
-        let hash = abs(string.hashValue)
+        // Generate a consistent color using a stable hash
+        let hash = stableHash(string)
         // Hue: 0-1
         let hue = Double(hash % 100) / 100.0
         // Saturation: 0.6 - 0.9 (Vibrant)
@@ -172,6 +322,14 @@ class TimelineProcessor {
         let brightness = 0.8 + (Double((hash / 400) % 3) / 10.0)
         
         return Color(hue: hue, saturation: saturation, brightness: brightness)
+    }
+    
+    private func stableHash(_ string: String) -> Int {
+        var hash = 5381
+        for char in string.unicodeScalars {
+            hash = ((hash << 5) &+ hash) &+ Int(char.value)
+        }
+        return abs(hash)
     }
     
     private func icon(for bundleId: String) -> NSImage? {

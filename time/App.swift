@@ -12,6 +12,7 @@ struct timApp: App {
             Activity.self,
             Project.self,
             AutoAssignRule.self,
+            Event.self,
         ])
         
         // Define a custom store URL
@@ -77,13 +78,18 @@ struct timApp: App {
     }()
 
     @State private var appState = AppState()
+    @State private var eventManager = EventManager()
     @AppStorage("appTheme") private var appTheme: AppTheme = .system
 
     var body: some Scene {
         WindowGroup("") {
             ContentView()
                 .environment(appState)
+                .environment(eventManager)
                 .preferredColorScheme(appTheme.colorScheme)
+                .onAppear {
+                    eventManager.setModelContext(sharedModelContainer.mainContext)
+                }
         }
         .modelContainer(sharedModelContainer)
         .commands {
@@ -98,5 +104,18 @@ struct timApp: App {
         Settings {
             SettingsView()
         }
+        
+        MenuBarExtra {
+            MenuBarView()
+                .environment(eventManager)
+                .modelContainer(sharedModelContainer)
+        } label: {
+            if let event = eventManager.currentEvent {
+                MenuBarLabelView(event: event)
+            } else {
+                Image(systemName: "timer")
+            }
+        }
+        .menuBarExtraStyle(.window)
     }
 }

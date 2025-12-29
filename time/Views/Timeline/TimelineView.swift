@@ -3,21 +3,41 @@ import SwiftData
 
 struct TimelineView: View {
     var activities: [Activity]
+    var events: [Event]
     
     // Controlled from outside
     @Binding var visibleTimeRange: ClosedRange<Date>
     var totalTimeRange: ClosedRange<Date>
     
+    // Callback for filtering (Drag Selection)
+    var onRangeSelected: ((ClosedRange<Date>) -> Void)?
+    
+    @AppStorage("timelineMergeStatisticsEnabled") private var mergeEnabled = false
+    @AppStorage("timelineMergeIntervalMinutes") private var mergeIntervalMinutes = 30
+    
     @State private var renderBlocks: [TimelineRenderBlock] = []
+    @State private var eventRenderBlocks: [TimelineRenderBlock] = []
+    
     @State private var hoveredBlock: TimelineRenderBlock? = nil
     @State private var hoverLocation: CGPoint = .zero
     
+    @State private var selectedEventId: UUID? = nil
+    @State private var showEditEventPopover: Bool = false
+    
+    // Create Event State
+    @State private var showCreateEventPopover: Bool = false
+    @State private var dragCreateStartTime: Date?
+    @State private var dragCreateEndTime: Date?
+    @State private var dragCreateLocation: CGPoint = .zero
+    
     private let processor = TimelineProcessor()
     
-    init(activities: [Activity], visibleTimeRange: Binding<ClosedRange<Date>>, totalTimeRange: ClosedRange<Date>) {
+    init(activities: [Activity], events: [Event] = [], visibleTimeRange: Binding<ClosedRange<Date>>, totalTimeRange: ClosedRange<Date>, onRangeSelected: ((ClosedRange<Date>) -> Void)? = nil) {
         self.activities = activities
+        self.events = events
         self._visibleTimeRange = visibleTimeRange
         self.totalTimeRange = totalTimeRange
+        self.onRangeSelected = onRangeSelected
     }
     
     var body: some View {
@@ -40,65 +60,138 @@ struct TimelineView: View {
                     // Background Grid
                     TimeAxisGrid(range: visibleTimeRange, width: width)
                     
-                    // App Activity Track
-                    // We wrap Canvas in a view to handle drawing
-                    Canvas { context, size in
-                        for block in renderBlocks {
-                            // Draw Rounded Rect
-                            let path = Path(roundedRect: block.rect, cornerRadius: 4)
-                            context.fill(path, with: .color(block.color))
-                            
-                            // Draw Icon (if space permits)
-                            if block.rect.width > 20, let icon = block.icon {
-                                let iconSize: CGFloat = 16
-                                // Center icon in the block
-                                let iconRect = CGRect(
-                                    x: block.rect.midX - (iconSize / 2),
-                                    y: block.rect.midY - (iconSize / 2),
-                                    width: iconSize,
-                                    height: iconSize
-                                )
-                                context.draw(Image(nsImage: icon), in: iconRect)
+                    VStack(spacing: 0) {
+                        // App Activity Track (Top)
+                        Canvas { context, size in
+                            for block in renderBlocks {
+                                // Draw Rounded Rect
+                                let path = Path(roundedRect: block.rect, cornerRadius: 4)
+                                context.fill(path, with: .color(block.color))
+                                
+                                // Draw Icon (if space permits)
+                                if block.rect.width > 20, let icon = block.icon {
+                                    let iconSize: CGFloat = 16
+                                    // Center icon in the block
+                                    let iconRect = CGRect(
+                                        x: block.rect.midX - (iconSize / 2),
+                                        y: block.rect.midY - (iconSize / 2),
+                                        width: iconSize,
+                                        height: iconSize
+                                    )
+                                    context.draw(Image(nsImage: icon), in: iconRect)
+                                }
                             }
                         }
+                        .frame(height: 48)
+                        
+                        Divider()
+                        
+                        // Event Track (Bottom)
+                        Canvas { context, size in
+                            for block in eventRenderBlocks {
+                                let path = Path(roundedRect: block.rect, cornerRadius: 4)
+                                context.fill(path, with: .color(block.color))
+                                
+                                // Text
+                                if block.rect.width > 20 {
+                                    let center = CGPoint(x: block.rect.midX, y: block.rect.midY)
+                                    let text = Text(block.appName)
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                    context.draw(text, at: center, anchor: .center)
+                                }
+                            }
+                        }
+                        .frame(height: 48)
                     }
-                    .frame(height: 48) // Increased Track height
                     
                     // Interaction Overlay
                     TimelineInteractionOverlay(
                         visibleTimeRange: $visibleTimeRange,
                         totalTimeRange: totalTimeRange,
                         totalWidth: width,
-                        onHover: { x in
-                            // Find block at x
-                            // Since blocks are sorted by X (mostly), we can binary search or just linear scan for MVP
-                            // The processor output is sorted by Time -> X.
-                            // However, we need to handle potential overlaps or simple hit test.
-                            // Blocks have `rect`. We just check if x is within rect.minX...rect.maxX
-                            
-                            // Note: onHover provides x relative to view.
-                            // Blocks are rendered relative to 0...width.
-                            
-                            // Optimization: Binary Search
-                            // For now, firstMatch is fine.
-                            if let block = renderBlocks.first(where: { $0.rect.contains(CGPoint(x: x, y: 20)) }) {
-                                hoveredBlock = block
-                                hoverLocation = CGPoint(x: x, y: 0) // Y will be adjusted by Popover
+                        onHover: { point in
+                            // Check Activity Track (Top, 0-48)
+                            if point.y < 48 {
+                                // Hit test on activity blocks
+                                if let block = renderBlocks.first(where: { $0.rect.contains(point) }) {
+                                    hoveredBlock = block
+                                    hoverLocation = point
+                                } else {
+                                    // If moving within the same track but not on a block, clear
+                                    hoveredBlock = nil
+                                }
+                            }
+                            // Check Event Track (Bottom, > 49)
+                            else if point.y > 49 {
+                                // Convert point to Event Track coordinate space (y - 49)
+                                let localY = point.y - 49
+                                let localPoint = CGPoint(x: point.x, y: localY)
+                                
+                                if let block = eventRenderBlocks.first(where: { $0.rect.contains(localPoint) }) {
+                                    hoveredBlock = block
+                                    hoverLocation = point
+                                } else {
+                                    hoveredBlock = nil
+                                }
                             } else {
+                                // Divider or out of bounds
                                 hoveredBlock = nil
                             }
                         },
                         onHoverEnd: {
                             hoveredBlock = nil
+                        },
+                        onClick: { point in
+                            // Single click logic (e.g. Selection)
+                            // Currently empty to avoid conflict with double click
+                        },
+                        onDoubleClick: { point in
+                            // Event Track is > 49 (48 + 1)
+                            if point.y > 49 {
+                                let eventY = point.y - 49
+                                if let block = eventRenderBlocks.first(where: { $0.rect.contains(CGPoint(x: point.x, y: eventY)) }) {
+                                    if let id = block.eventId {
+                                        selectedEventId = id
+                                        // Calculate center point of the block in global coordinate space
+                                        // Block rect is local to the track (y-offset: 49)
+                                        let centerX = block.rect.midX
+                                        let centerY = block.rect.midY + 49
+                                        dragCreateLocation = CGPoint(x: centerX, y: centerY)
+                                        
+                                        showEditEventPopover = true
+                                    }
+                                }
+                            }
+                        },
+                        onDragEnd: { x1, x2, y in
+                            // Calculate Time Range
+                            let duration = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
+                            let pxPerSec = width / duration
+                            
+                            let t1 = visibleTimeRange.lowerBound.addingTimeInterval(Double(x1) / pxPerSec)
+                            let t2 = visibleTimeRange.lowerBound.addingTimeInterval(Double(x2) / pxPerSec)
+                            
+                            let start = min(t1, t2)
+                            let end = max(t1, t2)
+                            
+                            // Check if this is Event Creation (y > 48)
+                            if y > 48 {
+                                dragCreateStartTime = start
+                                dragCreateEndTime = end
+                                dragCreateLocation = CGPoint(x: (x1 + x2) / 2, y: y)
+                                showCreateEventPopover = true
+                            } else {
+                                // Drag Select on Activity Track -> Filter Time
+                                // Update visible range AND trigger filter callback
+                                visibleTimeRange = start...end
+                                onRangeSelected?(start...end)
+                            }
                         }
                     )
-                    
-                    // Tooltip Popover (Moved to overlay to avoid clipping if possible, but ZStack clips by default in some contexts. 
-                    // To truly avoid clipping, we should use .overlay on the top-level container or use a GeometryReader at root.
-                    // However, shifting Y position down and clamping X is easier for now.)
                 }
                 .background(Color(nsColor: .controlBackgroundColor))
-                .zIndex(1) // Ensure track is above navigator
+                .zIndex(1)
                 
                 // Navigator (Scrollbar) - Hide when not zoomed
                 if !isFullyZoomedOut {
@@ -112,45 +205,93 @@ struct TimelineView: View {
             .background(Color(nsColor: .controlBackgroundColor))
             .cornerRadius(8)
             .shadow(radius: 1, y: 1)
-            // Tooltip Overlay at the top level of the component to reduce clipping risk
+            // Tooltip Overlay
             .overlay(alignment: .topLeading) {
                     if let block = hoveredBlock {
                         TimelineTooltipView(block: block)
-                            // Smart Positioning
-                            .offset(
-                                x: min(max(0, hoverLocation.x - 100), width - 200), // Clamp X
-                                y: 60 // Show BELOW the track to avoid top clipping
+                            // Position vertically based on track (Top/Bottom)
+                            // Position horizontally centered on the block
+                            .position(
+                                x: block.rect.midX,
+                                y: hoverLocation.y > 48 ? 15 : 85
                             )
                             .transition(.opacity)
                             .allowsHitTesting(false)
                     }
                 }
+            // Edit Event Overlay
+            .overlay(alignment: .topLeading) {
+                 if showEditEventPopover, let id = selectedEventId, let event = events.first(where: { $0.id == id }) {
+                     Color.clear
+                        .frame(width: 1, height: 1)
+                        .position(dragCreateLocation) // Use the captured block location
+                        .popover(isPresented: $showEditEventPopover) {
+                             EditEventView(event: event)
+                                 .onDisappear {
+                                     // Trigger recalculation after edit
+                                     recalculate(width: width)
+                                 }
+                        }
+                 }
+            }
+            // Create Event Overlay (from Drag)
+            .overlay(alignment: .topLeading) {
+                if showCreateEventPopover {
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .position(dragCreateLocation)
+                        .popover(isPresented: $showCreateEventPopover) {
+                            StartEventView(initialStartTime: dragCreateStartTime, initialEndTime: dragCreateEndTime)
+                                .onDisappear {
+                                    // Trigger recalculation after create
+                                    recalculate(width: width)
+                                }
+                        }
+                }
+            }
             .onChange(of: width) { newWidth in
                 recalculate(width: newWidth)
             }
             .onChange(of: activities) { _ in
                 recalculate(width: width)
             }
+            .onChange(of: events) { _ in
+                recalculate(width: width)
+            }
             .onChange(of: visibleTimeRange) { _ in
+                recalculate(width: width)
+            }
+            .onChange(of: mergeEnabled) { _ in
+                recalculate(width: width)
+            }
+            .onChange(of: mergeIntervalMinutes) { _ in
                 recalculate(width: width)
             }
             .onAppear {
                 recalculate(width: width)
             }
         }
-        .frame(height: isFullyZoomedOut ? 74 : 90) // Adjust height based on scrollbar visibility
+        .frame(height: isFullyZoomedOut ? 122 : 138)
     }
     
     private var isFullyZoomedOut: Bool {
         let totalDuration = totalTimeRange.upperBound.timeIntervalSince(totalTimeRange.lowerBound)
         let visibleDuration = visibleTimeRange.upperBound.timeIntervalSince(visibleTimeRange.lowerBound)
-        // Allow small floating point error (e.g. 99% zoomed out is effectively full)
         return visibleDuration >= totalDuration * 0.99
     }
     
     private func recalculate(width: CGFloat) {
-        let blocks = processor.process(activities: activities, visibleTimeRange: visibleTimeRange, canvasWidth: width)
+        let blocks: [TimelineRenderBlock]
+        if mergeEnabled {
+            let interval = TimeInterval(mergeIntervalMinutes * 60)
+            blocks = processor.processMerged(activities: activities, visibleTimeRange: visibleTimeRange, canvasWidth: width, interval: interval)
+        } else {
+            blocks = processor.process(activities: activities, visibleTimeRange: visibleTimeRange, canvasWidth: width)
+        }
         self.renderBlocks = blocks
+        
+        let evtBlocks = processor.processEvents(events: events, visibleTimeRange: visibleTimeRange, canvasWidth: width)
+        self.eventRenderBlocks = evtBlocks
     }
 }
 

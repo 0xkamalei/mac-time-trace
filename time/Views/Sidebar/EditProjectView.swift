@@ -163,7 +163,7 @@ struct EditProjectView: View {
                     Text("Activities matching these rules will be automatically assigned to this project.")
                 }
                 
-                if case let .edit(project) = mode {
+                if case .edit = mode {
                     Section {
                         Button(role: .destructive) {
                             showingDeleteConfirmation = true

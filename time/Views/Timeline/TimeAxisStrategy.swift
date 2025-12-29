@@ -23,7 +23,6 @@ struct TimeAxisStrategy {
         // Define standard steps in seconds
         let minute = 60.0
         let hour = 3600.0
-        let day = 86400.0
         
         if idealSeconds < 2 * minute {
             return Interval(component: .minute, value: 1, labelFormat: "HH:mm", showDate: false)

@@ -3,9 +3,15 @@ import SwiftUI
 struct TrackingSettingsView: View {
     @State private var isAccessibilityEnabled: Bool = false
     @State private var timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
+    @AppStorage("stopEventOnIdle") private var stopEventOnIdle: Bool = false
     
     var body: some View {
         VStack(alignment: .center, spacing: 20) {
+            Toggle("Stop current event when computer is idle", isOn: $stopEventOnIdle)
+                .padding()
+                .background(Color.secondary.opacity(0.05))
+                .cornerRadius(12)
+                
             VStack(spacing: 12) {
                 Text("In order to track the paths of most documents, you need to allow Time to use the Accessibility system. Simply tick the corresponding checkbox in the Security preferences.")
                     .font(.body)
